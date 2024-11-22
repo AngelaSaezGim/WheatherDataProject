@@ -14,6 +14,8 @@ import java.util.Scanner;
 
 //SQL Connection
 import Connections.DataAccessManagerSQL;
+//MongoDb Connection
+import Connections.DataAccessManagerMongo;
 
 import java.sql.SQLException;
 
@@ -42,6 +44,7 @@ public class WheatherApp {
                 switch (opcionElegida) {
                     case QUERY_ALL:
                         selectConnectionSQL(dam);
+                        DataAccessManagerMongo.connectToMongoClient();
                         break;
                     case QUERY_BY_CODE:
                         break;
