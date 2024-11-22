@@ -1,0 +1,83 @@
+{
+ "WeatherData": [
+ {
+ "record_id": 401,
+ "city": "Madrid",
+ "country": "Spain",
+ "latitude": 40.4168,
+ "longitude": -3.7038,
+ "date": "2023-11-10",
+ "temperature_celsius": 15,
+ "humidity_percent": 65,
+ "precipitation_mm": 2.5,
+ "wind_speed_kmh": 20,
+ "weather_condition": "Cloudy",
+ "forecast": "Light rain expected in the afternoon",
+ "updated": "2023-11-10"
+ },
+
+ {
+ "record_id": 402,
+ "city": "Valencia",
+ "country": "Spain",
+ "latitude": 39.4699,
+ "longitude": -0.3763,
+ "date": "2023-11-10",
+ "temperature_celsius": 18,
+ "humidity_percent": 72,
+ "precipitation_mm": 0,
+ "wind_speed_kmh": 15,
+ "weather_condition": "Partly cloudy",
+ "forecast": "Clear skies expected throughout the day",
+ "updated": "2023-11-10"
+ },
+
+ {
+ "record_id": 403,
+ "city": "Barcelona",
+ "country": "Spain",
+ "latitude": 41.3784,
+ "longitude": 2.1925,
+ "date": "2023-11-10",
+ "temperature_celsius": 17,
+ "humidity_percent": 78,
+ "precipitation_mm": 0.1,
+ "wind_speed_kmh": 10,
+ "weather_condition": "Light rain",
+ "forecast": "Scattered showers throughout the day",
+ "updated": "2023-11-10"
+ },
+
+ {
+ "record_id": 404,
+ "city": "Alicante",
+ "country": "Spain",
+ "latitude": 38.3452,
+ "longitude": -0.4810,
+ "date": "2023-11-10",
+ "temperature_celsius": 21,
+ "humidity_percent": 58,
+ "precipitation_mm": 0,
+ "wind_speed_kmh": 25,
+ "weather_condition": "Sunny",
+ "forecast": "Clear skies with no precipitation",
+ "updated": "2023-11-10"
+ },
+
+ {
+ "record_id": 405,
+ "city": "Castellón de la Plana",
+ "country": "Spain",
+ "latitude": 39.9860,
+ "longitude": -0.0376,
+ "date": "2023-11-10",
+ "temperature_celsius": 14,
+ "humidity_percent": 85,
+ "precipitation_mm": 5.2,
+ "wind_speed_kmh": 18,
+ "weather_condition": "Heavy rain",
+ "forecast": "Rain expected to continue until evening",
+ "updated": "2023-11-10"
+ }
+ ]
+}
