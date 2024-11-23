@@ -84,7 +84,6 @@ public class WheatherApp {
                 .append("\t3)\n")
                 .append("\t4)\n")
                 .append("\t5)\n")
-                .append("\t6)\n")
                 .append("Opción: ");
         System.out.print(sb.toString());
     }
