@@ -32,12 +32,14 @@ public class WheatherApp {
 
         MenuOption opcionElegida = null;
 
-        //instrucción try-con-recurso (el recurso es el objeto DataAccessManager declarado en el paréntesis). 
-        // Automáticamente, tras el try-con-recurso, la JDK invoca al método AutoCloseable.close()
-        //implementado en DataAcessManager.
         try ( DataAccessManagerSQL dam = DataAccessManagerSQL.getInstance()) {
+            
+            System.out.println("Benvingut XXXXXX, a la teua ciutat ZZZZZZZ hi ha una temperatura de X graus centígrads.");
 
             do {
+                System.out.println("Menu de Opciones");
+                System.out.println("Usando: " + "ejmongoDB");
+                System.out.println("Elementos en la base de datos: " + "ejmongoDB");
                 printOptions();
                 opcionElegida = readChoice();
 
@@ -56,7 +58,6 @@ public class WheatherApp {
                         break;
                     case EXIT:
                 }
-
             } while (opcionElegida != MenuOption.EXIT);
 
         } catch (SQLException sqe) {
@@ -79,7 +80,7 @@ public class WheatherApp {
     private static void printOptions() {
         StringBuilder sb = new StringBuilder()
                 .append("\n\n\nElija una opción:\n")
-                .append("\t1)\n")
+                .append("\t1) Cambiar Base de datos (SQL/MongoDB) \n")
                 .append("\t2)\n")
                 .append("\t3)\n")
                 .append("\t4)\n")
@@ -91,4 +92,12 @@ public class WheatherApp {
         System.out.println("a");
     }
 
+    public static String doLogin() throws SQLException {
+        
+        System.out.println("Procedemos al login");
+        System.out.println("Dime tu DNI;");
+        tcl.nextLine();
+        
+        return
+    }
 }

@@ -1,7 +1,7 @@
-CREATE SCHEMA IF NOT EXISTS WheatherDataAS01;
-USE WheatherDataAS01;
+CREATE SCHEMA IF NOT EXISTS WheatherData;
+USE WheatherData;
 
-CREATE TABLE WeatherData (
+CREATE TABLE WeatherDataAS01 (
     record_id INT PRIMARY KEY,
     city VARCHAR(100),
     country VARCHAR(100),
@@ -18,9 +18,9 @@ CREATE TABLE WeatherData (
 );
 
 /*INSERTANDO DATOS PRUEBA*/
-GRANT ALL PRIVILEGES ON ``.* TO 'root'@'localhost';
+GRANT ALL PRIVILEGES ON `WheatherData`.* TO 'root'@'localhost';
 
-INSERT INTO WeatherData (
+INSERT INTO WeatherDataAS01 (
     record_id, city, country, latitude, longitude, date,
     temperature_celsius, humidity_percent, precipitation_mm,
     wind_speed_kmh, weather_condition, forecast, updated
@@ -31,9 +31,10 @@ INSERT INTO WeatherData (
 (404, 'Alicante', 'Spain', 38.3452, -0.4810, '2023-11-10', 21, 58, 0.0, 25, 'Sunny', 'Clear skies with no precipitation', '2023-11-10'),
 (405, 'Castellón de la Plana', 'Spain', 39.9860, -0.0376, '2023-11-10', 14, 85, 5.2, 18, 'Heavy rain', 'Rain expected to continue until evening', '2023-11-10');
 
+SELECT * FROM WeatherDataAS01
 /*
-DROP TABLE IF EXISTS WeatherData;
+DROP TABLE IF EXISTS WeatherDataAS01;
 */
 /*
-DELETE FROM WeatherData;
+DELETE FROM WeatherDataAS01;
 */

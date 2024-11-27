@@ -5,99 +5,92 @@
 package Connections;
 
 import com.mongodb.MongoClient;
+import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.MongoIterable;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.Properties;
+
+import static Connections.Constants.*;
 
 /**
  *
  * @author angsaegim
  */
-public class DataAccessManagerMongo {
 
-    public static MongoClient connectToMongoClient() {
-        /*
-    * Static method that connects to client
-         */
-        try {
+//SINGLETON PARA CONEXION MONGODB
 
-            MongoClient dbClient = new MongoClient();
-            return dbClient;
-        } catch (Exception ex) {
-            System.out.println("Something wrong connecting!");
-            ex.printStackTrace(System.out);
-        }
-        return null;
+//AutoCloseable cierro la conexión cuando no la use
+public class DataAccessManagerMongo implements AutoCloseable {
+
+    /**
+     * ************************ PARTE ESTÁTICA ****************************
+     */
+    private static String mongoURI = DEFAULT_MONGO_URI;
+    private static DataAccessManagerMongo singleton;
+    private MongoClient mongoClient;
+    private MongoDatabase database;
+
+    // Instanciamos un único objeto DataAccessManager - SINGLETON
+    private DataAccessManagerMongoDB() {
+        this.database = mongoClient.getDatabase(DEFAULT_DATABASE_NAME);
     }
 
-    public static void closeMongoClient(MongoClient c) {
-        /*
-    * Static method that closes connnection with client
-         */
-        try {
-            c.close();
-        } catch (Exception ex) {
-            System.out.println("Unable to close!");
-            ex.printStackTrace(System.out);
-        }
-    }
-
-    public static MongoDatabase useDBMongo(MongoClient conn, String database, String collectionSelected) {
-        // Getting a connection
-        System.out.println("Connecting with MongoDB");
-
-        conn = connectToMongoClient();
-        MongoDatabase db = null;
-
-        try {
-            db = conn.getDatabase(database);
-            createCollectionIfNotExists(db);
-        } catch (Exception ex) {
-            System.out.println("Something wrong accesing!");
-            ex.printStackTrace(System.out);
-        }
-        return db;
-    }
-
-    public static MongoDatabase selectDBMongo(MongoClient conn, String database) {
-        // Getting a connection
-        conn = connectToMongoClient();
-        MongoDatabase db = null;
-
-        try {
-            db = conn.getDatabase(database);
-        } catch (Exception ex) {
-            System.out.println("Something wrong accesing!");
-            ex.printStackTrace(System.out);
-        }
-        return db;
-    }
-
-    public static boolean collectionExists(String collectionName, MongoDatabase database) {
-        /*
-        * Static method: Check if collection exists
-         */
-        MongoIterable<String> collection = database.listCollectionNames();
-        for (String s : collection) {
-            if (s.equals(collectionName)) {
-                return true;
+    /**
+     * Obtiene la instancia de la clase DataAccessManagerMongoDB.
+     *
+     * @return La instancia única de DataAccessManagerMongoDB.
+     */
+    public static DataAccessManagerMongoDB getInstance() {
+        if (singleton == null) {
+            loadMongoDBParams();
+            singleton = new DataAccessManagerMongoDB();
+            try {
+                singleton.mongoClient = new MongoClient(new MongoClientURI(mongoURI));
+            } catch (Exception e) {
+                singleton = null;
+                throw new RuntimeException("Error al conectar a MongoDB: " + e.getMessage(), e);
             }
         }
-        return false;
+        return singleton;
     }
 
-    public static void createCollectionIfNotExists(MongoDatabase database) {
-        /*
-        * Static method: Create collection if not exists
-         */
+    /**
+     * Carga las credenciales y URL de acceso a MongoDB desde un archivo de
+     * configuración.
+     */
+    private static void loadMongoDBParams() {
+        Properties properties = new Properties();
+        try ( FileReader reader = new FileReader(DB_CONFIG__FILE_NAME)) {
+            properties.load(reader);
+            if (properties.getProperty(DB_CONFIG__URI_PROPERTY) != null) {
+                mongoURI = properties.getProperty(DB_CONFIG__URI_PROPERTY);
+            }
+        } catch (IOException e) {
+            System.out.println("Error al cargar la configuración de MongoDB. Usando valores por defecto: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Devuelve la base de datos a la que se puede acceder.
+     *
+     * @return La base de datos de MongoDB.
+     */
+    public MongoDatabase getDatabase() {
+        return this.database;
+    }
+
+    @Override
+    public void close() {
         try {
-            if (!(collectionExists("wheatherData", database))) {
-                System.out.println("Collection does not exist");
-                database.createCollection("books");
-                System.out.println("Created collection wheatherData ...");
+            if (mongoClient != null) {
+                mongoClient.close();
+                mongoClient = null;
             }
         } catch (Exception e) {
-            System.out.println("Something wrong creating collection!");
-            e.printStackTrace(System.out);
+            System.out.println("Error al cerrar la conexión con MongoDB: " + e.getMessage());
+        } finally {
+            singleton = null;
         }
     }
 }

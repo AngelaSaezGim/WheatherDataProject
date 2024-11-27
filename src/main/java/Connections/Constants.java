@@ -12,9 +12,10 @@ import java.io.File;
  */
 public class Constants {
     
+    //SQL 
+    
     //path relativo del fichero de configuración que incluye las credenciales y URL configurables
     public final static String DB_CONFIG__FILE_NAME = "resources" + File.separator + "db.properties";
-
     public final static String MYSQL_DB_DRIVER__CLASS_NAME = "com.mysql.cj.jdbc.Driver";
 
     //propiedades configurables en el fichero de configuración
@@ -27,5 +28,17 @@ public class Constants {
     public final static String DEFAULT_DATA_BASE__USER = "tester";
     public final static String DEFAULT_DATA_BASE__PWD = "tester";
     public final static String DEFAULT_DATA_BASE__URL = "jdbc:mysql://localhost:3306/WeatherDataAS01?useSSL=false&useTimezone=true&serverTimezone=UTC&allowPublicKeyRetrieval=true";
+    
+    //MONGODB -----------------------------------------------------------------
+    
+     // Propiedades configurables en el archivo de configuración para MongoDB
+    public final static String DB_CONFIG__URI_PROPERTY = "mongodb.uri";
+    public final static String DB_CONFIG__DATABASE_PROPERTY = "mongodb.database";
+
+    // Valores por defecto para MongoDB
+    public final static String DEFAULT_MONGO_URI = "mongodb://localhost:27017";
+    public final static String DEFAULT_DATABASE_NAME = "WeatherDataAS01";
+    
+    //USERSSQL ----------------------------------------------------------------
     
 }
