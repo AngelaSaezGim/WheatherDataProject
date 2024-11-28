@@ -10,7 +10,8 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
-import static Connections.Constants.*;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  *
@@ -21,133 +22,103 @@ public class DataAccessManagerSQL implements AutoCloseable {
     /**
      * ************************ PARTE ESTÁTICA ****************************
      */
-    private static String dataBaseUser = DEFAULT_DATA_BASE__USER;
-    private static String dataBasePwd = DEFAULT_DATA_BASE__PWD;
-    private static String dataBaseURL = DEFAULT_DATA_BASE__URL;
+    //Por default usamos wheater data pero podemos cambiar a userInfo
+    private static final String DEFAULT_DB_NAME = "WeatherData";
+    private static final String MYSQL_DB_DRIVER__CLASS_NAME = "com.mysql.cj.jdbc.Driver";
+    private static final String DB_CONFIG_FILE_NAME = "src/resources/db.properties";
+    
+    //COMO TENGO 2 BASES DE DATOS USO UN HASHMAP PARA PODER CONECTARME A AMBAS
+    //ASI PODRE USARLAS CUANDO LAS NECESITE Y NO TENDRÉ QUE DUPLICAR CODIGO
+    private static Map<String, String> databaseUsers = new HashMap<>();
+    private static Map<String, String> databasePasswords = new HashMap<>();
+    private static Map<String, String> databaseURLs = new HashMap<>();
+    
+    // Almacena las conexiones activas a las bases de datos
+    private final Map<String, Connection> connections = new HashMap<>();
 
     private static DataAccessManagerSQL singleton;
 
-    // Instanciamos un único objeto DataAccessManager - SINGLETON
+    // Instanciamos una UNICA CONEXIÓN (SINGLETON)
     private DataAccessManagerSQL() {
-
+        loadDataBaseParams(); //para saber si es userInfo o wheaterData
     }
-
-    /**
-     * Los métodos de acceso a datos se pueden ejecutar con el objeto devuelto
-     * por esta función
-     *
-     * @return el mánager de acceso a datos con todas las sentencias embebidas
-     */
-    public static DataAccessManagerSQL getInstance() {
+    
+     // Obtiene la instancia única de DataAccessManagerSQL
+    public static synchronized DataAccessManagerSQL getInstance() {
         if (singleton == null) {
-            loadDataBaseParams();
             singleton = new DataAccessManagerSQL();
-            try {
-                singleton.cnx = createConnection();
-                //singleton.tablaDAO = new TablaDAO(singleton.cnx);
-            } catch (Exception e) {
-                singleton = null;
-                throw new RuntimeException(e);
-            }
-
         }
         return singleton;
     }
 
     /**
-     * Para saber si la inicialización del objeto singleton ha funcionado con
-     * éxito
-     *
-     * @return
+     * Carga las credenciales y URL de acceso a datos del fichero de
+     * configuración (db.properties) EN ESTE CASO ITERAMOS EN EL HASMAP YA QUE
+     * TENEMOS 2 CONEXIONES QUE CARGAR
      */
-    public static boolean connectionEnabled() {
-        return singleton != null;
-    }
+    private void loadDataBaseParams() {
+        Properties databaseConfig = new Properties();
+        try (FileReader dbReaderStream = new FileReader(DB_CONFIG_FILE_NAME)) {
+            databaseConfig.load(dbReaderStream);
 
-    /**
-     * Carga las credenciales y URL de acceso a datos de un fichero de
-     * configuración situado en {@link Constants#DB_CONFIG__FILE_NAME} . En caso
-     * de IOException, se usan las credenciales por defecto
-     */
-    private static void loadDataBaseParams() {
+            // Cargar configuraciones para WeatherData
+            databaseUsers.put("WeatherData", databaseConfig.getProperty("weather.user", "root"));
+            databasePasswords.put("WeatherData", databaseConfig.getProperty("weather.pass", "serpis"));
+            databaseURLs.put("WeatherData", databaseConfig.getProperty("weather.url"));
 
-        Properties pDataBaseConfiguration = null;
-        FileReader dbReaderStream = null;
-        try {
-            dbReaderStream = new FileReader(DB_CONFIG__FILE_NAME);
-            pDataBaseConfiguration = new Properties();
-            pDataBaseConfiguration.load(dbReaderStream);
+            // Cargar configuraciones para UserInfo
+            databaseUsers.put("UserInfo", databaseConfig.getProperty("userinfo.user", "root"));
+            databasePasswords.put("UserInfo", databaseConfig.getProperty("userinfo.pass", "serpis"));
+            databaseURLs.put("UserInfo", databaseConfig.getProperty("userinfo.url"));
+
         } catch (IOException e) {
-            System.out.println("Error en la carga de la configuración de la base de datos. Se sigue adelante con la ejecución por defecto. " + e.getMessage());
-
-        } finally {
-            try {
-                if (dbReaderStream != null) {
-                    dbReaderStream.close();
-                }
-            } catch (IOException ioe) {
-                System.out.println("Error al cerrar el flujo de lectura del fichero de configuración. Se ignora el error. " + ioe.getMessage());
-            }
-        }
-        //si se han cargado las properties, se asignan a las propiedades estáticas de los parámetros configurados
-        if (pDataBaseConfiguration != null) {
-            if (pDataBaseConfiguration.getProperty(DB_CONFIG__USER_PROPERTY) != null) {
-                dataBaseUser = pDataBaseConfiguration.getProperty(DB_CONFIG__USER_PROPERTY);
-            }
-            if (pDataBaseConfiguration.getProperty(DB_CONFIG__PWD_PROPERTY) != null) {
-                dataBasePwd = pDataBaseConfiguration.getProperty(DB_CONFIG__PWD_PROPERTY);
-            }
-            if (pDataBaseConfiguration.getProperty(DB_CONFIG__URL_PROPERTY) != null) {
-                dataBaseURL = pDataBaseConfiguration.getProperty(DB_CONFIG__URL_PROPERTY);
-            }
+            throw new RuntimeException("Error al cargar configuración de bases de datos: " + e.getMessage(), e);
         }
     }
-
-    /**
-     * ************************ PARTE DINÁMICA ****************************
-     */
-    //para conectar y ejecutar las SQL en la bbdd
-    private Connection cnx;
-
-    //private tablaDAO tablaDAO;
-    private static Connection createConnection() {
-
+    
+    //Creamos la conexión según la base de datos a la que nos estemos conectando
+    private static Connection createConnection(String dbName) {
+        String url = databaseURLs.get(dbName);
+        String user = databaseUsers.get(dbName);
+        String password = databasePasswords.get(dbName);
+        
+        if (url == null || user == null || password == null) {
+            throw new RuntimeException("Faltan configuraciones para la base de datos: '" + dbName + ", ve a db.resoruces'.");
+        }
         try {
             Class.forName(MYSQL_DB_DRIVER__CLASS_NAME);
-            Connection cnt = DriverManager.getConnection(dataBaseURL, dataBaseUser, dataBasePwd);
-            cnt.setAutoCommit(true);
-            return cnt;
-        } catch (ClassNotFoundException cnfe) {
-            System.out.println("No se ha encontrado el driver. Revise la carpeta lib en busca del driver jdbc de MySQL. " + cnfe.getMessage());
-            return null;
-        } catch (SQLException sqle) {
-            StringBuilder sb = new StringBuilder()
-                    .append("Existe un problema de conexión a la base de datos. ")
-                    .append("Revise: \n")
-                    .append("\t- Que tiene levantado el servidor de MySQL.\n")
-                    .append("\t- Que la base de datos WheatherDataAS01 está instalada.\n")
-                    .append("\t- Que la configuración del fichero resources/db.properties es corecta.\n")
-                    .append("Error: ")
-                    .append(sqle.getMessage());
-            System.out.println(sb.toString());
-            return null;
+            Connection connection = DriverManager.getConnection(url, user, password);
+            connection.setAutoCommit(true);
+            return connection;
+        } catch (ClassNotFoundException | SQLException e) {
+            throw new RuntimeException("Error al conectar a la base de datos '" + dbName + "': " + e.getMessage(), e);
         }
-
     }
 
+    /**
+     * Devuelve una conexión a la base de datos especificada.
+     * Si no existe una conexión, se crea automáticamente.
+     */
+    public Connection getConnection(String dbName) {
+        return connections.computeIfAbsent(dbName, DataAccessManagerSQL::createConnection);
+    }
+
+   /**
+     * Cierra todas las conexiones activas.
+     */
     @Override
     public void close() {
-        try {
-            if (cnx != null && !cnx.isClosed()) {
-                cnx.close();
-                cnx = null;
-                //tablaDAO = null;
+        for (Connection connection : connections.values()) {
+            try {
+                if (connection != null && !connection.isClosed()) {
+                    connection.close();
+                }
+            } catch (SQLException e) {
+                System.err.println("Error al cerrar la conexión: " + e.getMessage());
             }
-        } catch (SQLException sqe) {
-            System.out.println("Error al cerrar la conexión a datos. " + sqe.getMessage());
-        } finally {
-            singleton = null;
         }
+        connections.clear();
+        singleton = null;
     }
 
     /* FUNCIONES CON DATOS */

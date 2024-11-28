@@ -15,9 +15,9 @@ import java.util.Scanner;
 //SQL Connection
 import Connections.DataAccessManagerSQL;
 //MongoDb Connection
-import Connections.DataAccessManagerMongo;
-
-import java.sql.SQLException;
+import Connections.DataAccessManagerMongoDB;
+import com.mongodb.client.MongoDatabase;
+import java.sql.Connection;
 
 public class WheatherApp {
 
@@ -30,41 +30,61 @@ public class WheatherApp {
 
     public static void main(String[] args) {
 
-        MenuOption opcionElegida = null;
+        //Desactivamos logs de MongoDB
+        Utilities.disableMongoLogging();
+        System.out.println("Logger de MongoDB deshabilitado. Continuando con la aplicación...");
 
-        try ( DataAccessManagerSQL dam = DataAccessManagerSQL.getInstance()) {
-            
-            System.out.println("Benvingut XXXXXX, a la teua ciutat ZZZZZZZ hi ha una temperatura de X graus centígrads.");
-
-            do {
-                System.out.println("Menu de Opciones");
-                System.out.println("Usando: " + "ejmongoDB");
-                System.out.println("Elementos en la base de datos: " + "ejmongoDB");
-                printOptions();
-                opcionElegida = readChoice();
-
-                switch (opcionElegida) {
-                    case QUERY_ALL:
-                        selectConnectionSQL(dam);
-                        DataAccessManagerMongo.connectToMongoClient();
-                        break;
-                    case QUERY_BY_CODE:
-                        break;
-                    case QUERY_CLIENTES_INSERT:
-                        break;
-                    case QUERY_CLIENTES_UPDATE:
-                        break;
-                    case QUERY_CLIENTES_DELETE:
-                        break;
-                    case EXIT:
-                }
-            } while (opcionElegida != MenuOption.EXIT);
-
-        } catch (SQLException sqe) {
-            System.out.println("Error de acceso a datos: " + sqe.getMessage());
+        // Obtener la instancia del DataAccessManagerMongoDB (Singleton)
+        DataAccessManagerMongoDB managerMongoDB = DataAccessManagerMongoDB.getInstance();
+        // Obtener la base de datos de MongoDB
+        MongoDatabase mongoDatabase = managerMongoDB.getDatabase();
+        if (mongoDatabase != null) {
+            System.out.println("Conexión exitosa a MongoDB. Base de datos: " + mongoDatabase.getName());
+        } else {
+            System.err.println("Error al conectar a la base de datos MongoDB.");
         }
-        System.out.println("\n\n  ADIOS !!!! \n\n");
-        tcl.close();
+
+        //INSTANCIA CONEXIÓN SQL (uso singleton)
+        try ( DataAccessManagerSQL managerSQL = DataAccessManagerSQL.getInstance()) {
+
+            // Conexión a WeatherData
+            try ( Connection weatherConnection = managerSQL.getConnection("WeatherData")) {
+                System.out.println("Conexión a WeatherData exitosa.");
+                // Conexión a UserInfo
+                try ( Connection userInfoConnection = managerSQL.getConnection("UserInfo")) {
+                    System.out.println("Conexión a UserInfo exitosa.");
+                    System.out.println("Benvingut XXXXXX, a la teua ciutat ZZZZZZZ hi ha una temperatura de X graus centígrads.");
+                } catch (Exception e) {
+                    System.err.println("Error en UserInfo: " + e.getMessage());
+                }
+
+                MenuOption opcionElegida = null;
+                do {
+                    System.out.println("Menu de Opciones");
+                    printOptions();
+                    opcionElegida = readChoice();
+
+                    switch (opcionElegida) {
+                        case QUERY_ALL:
+                            DataAccessManagerMongoDB.getInstance();
+                            break;
+                        case QUERY_BY_CODE:
+                            break;
+                        case QUERY_CLIENTES_INSERT:
+                            break;
+                        case QUERY_CLIENTES_UPDATE:
+                            break;
+                        case QUERY_CLIENTES_DELETE:
+                            break;
+                        case EXIT:
+                    }
+                } while (opcionElegida != MenuOption.EXIT);
+
+            } catch (Exception e) {
+                System.err.println("Error en WeatherData: " + e.getMessage());
+            }
+
+        }
     }
 
     private static MenuOption readChoice() {
@@ -86,18 +106,5 @@ public class WheatherApp {
                 .append("\t4)\n")
                 .append("Opción: ");
         System.out.print(sb.toString());
-    }
-
-    public static void selectConnectionSQL(DataAccessManagerSQL dam) throws SQLException {
-        System.out.println("a");
-    }
-
-    public static String doLogin() throws SQLException {
-        
-        System.out.println("Procedemos al login");
-        System.out.println("Dime tu DNI;");
-        tcl.nextLine();
-        
-        return
     }
 }

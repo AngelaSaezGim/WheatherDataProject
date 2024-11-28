@@ -1,5 +1,5 @@
-CREATE SCHEMA IF NOT EXISTS WheatherData;
-USE WheatherData;
+CREATE SCHEMA IF NOT EXISTS WeatherData;
+USE WeatherData;
 
 CREATE TABLE WeatherDataAS01 (
     record_id INT PRIMARY KEY,
@@ -18,7 +18,7 @@ CREATE TABLE WeatherDataAS01 (
 );
 
 /*INSERTANDO DATOS PRUEBA*/
-GRANT ALL PRIVILEGES ON `WheatherData`.* TO 'root'@'localhost';
+GRANT ALL PRIVILEGES ON `WeatherData`.* TO 'root'@'localhost';
 
 INSERT INTO WeatherDataAS01 (
     record_id, city, country, latitude, longitude, date,
