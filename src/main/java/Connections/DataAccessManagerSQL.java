@@ -33,13 +33,13 @@ public class DataAccessManagerSQL implements AutoCloseable {
     private static final String DEFAULT_DB_NAME = "WeatherData";
     private static final String MYSQL_DB_DRIVER__CLASS_NAME = "com.mysql.cj.jdbc.Driver";
     private static final String DB_CONFIG_FILE_NAME = "src/resources/db.properties";
-    
+
     //COMO TENGO 2 BASES DE DATOS USO UN HASHMAP PARA PODER CONECTARME A AMBAS
     //ASI PODRE USARLAS CUANDO LAS NECESITE Y NO TENDRÉ QUE DUPLICAR CODIGO
     private static Map<String, String> databaseUsers = new HashMap<>();
     private static Map<String, String> databasePasswords = new HashMap<>();
     private static Map<String, String> databaseURLs = new HashMap<>();
-    
+
     // Almacena las conexiones activas a las bases de datos
     private final Map<String, Connection> connections = new HashMap<>();
 
@@ -49,8 +49,8 @@ public class DataAccessManagerSQL implements AutoCloseable {
     private DataAccessManagerSQL() {
         loadDataBaseParams(); //para saber si es userInfo o wheaterData
     }
-    
-     // Obtiene la instancia única de DataAccessManagerSQL
+
+    // Obtiene la instancia única de DataAccessManagerSQL
     public static synchronized DataAccessManagerSQL getInstance() {
         if (singleton == null) {
             singleton = new DataAccessManagerSQL();
@@ -65,7 +65,7 @@ public class DataAccessManagerSQL implements AutoCloseable {
      */
     private void loadDataBaseParams() {
         Properties databaseConfig = new Properties();
-        try (FileReader dbReaderStream = new FileReader(DB_CONFIG_FILE_NAME)) {
+        try ( FileReader dbReaderStream = new FileReader(DB_CONFIG_FILE_NAME)) {
             databaseConfig.load(dbReaderStream);
 
             // Cargar configuraciones para WeatherData
@@ -82,13 +82,13 @@ public class DataAccessManagerSQL implements AutoCloseable {
             throw new RuntimeException("Error al cargar configuración de bases de datos: " + e.getMessage(), e);
         }
     }
-    
+
     //Creamos la conexión según la base de datos a la que nos estemos conectando
     private static Connection createConnection(String dbName) {
         String url = databaseURLs.get(dbName);
         String user = databaseUsers.get(dbName);
         String password = databasePasswords.get(dbName);
-        
+
         if (url == null || user == null || password == null) {
             throw new RuntimeException("Faltan configuraciones para la base de datos: '" + dbName + ", ve a db.resoruces'.");
         }
@@ -103,14 +103,14 @@ public class DataAccessManagerSQL implements AutoCloseable {
     }
 
     /**
-     * Devuelve una conexión a la base de datos especificada.
-     * Si no existe una conexión, se crea automáticamente.
+     * Devuelve una conexión a la base de datos especificada. Si no existe una
+     * conexión, se crea automáticamente.
      */
     public Connection getConnection(String dbName) {
         return connections.computeIfAbsent(dbName, DataAccessManagerSQL::createConnection);
     }
 
-   /**
+    /**
      * Cierra todas las conexiones activas.
      */
     @Override
@@ -129,33 +129,77 @@ public class DataAccessManagerSQL implements AutoCloseable {
     }
 
     /* FUNCIONES CON DATOS */
-    
     //para conectar y ejecutar las SQL en la bbdd
     private Connection cnx;
 
     private UserInfoSQLDAO userInfoDAO;
     private WeatherDataSQLDAO weatherDataDAO;
-    
+
     /*--------------SELECT - TODO*------------------------*/
     public List<UserInfo> loadAllUsers() throws SQLException {
-        
+
         return this.userInfoDAO.loadAllUsers();
     }
-    
+
     public List<WeatherData> loadAllWeatherData() throws SQLException {
-        
+
         return this.weatherDataDAO.loadAllWeatherData();
     }
-    
+
     /*----------------------------------------------------------*/
 
-    /*--------------SELECT - CONTAINING *------------------------*/
-    
+ /*-------------- SELECT - CONTAINING *------------------------*/
     public UserInfo loadUsersByDNI(String dni) throws SQLException {
         if (dni == null || dni.length() == 0) {
             throw new IllegalArgumentException("Debe indicar el filtro de búsqueda");
         }
-        
         return this.userInfoDAO.loadUserByDni(dni);
     }
+
+    public WeatherData loadWeatherDataByRecordId(String id) throws SQLException {
+        if (id == null || id.length() == 0) {
+            throw new IllegalArgumentException("Debe indicar el filtro de búsqueda");
+        }
+        return this.weatherDataDAO.loadWeatherDataByRecordId(id);
+    }
+
+    public boolean userExist(String dni) throws SQLException {
+        return this.userInfoDAO.userExist(dni);
+    }
+
+    public boolean weatherDataExist(String recordId) throws SQLException {
+        return this.weatherDataDAO.weatherDataExist(recordId);
+    }
+
+    /*------------------------------------------------------------*/
+    
+    /*-------------- INSERT - (WeatherData) *------------------------*/
+    
+    public int insertarWeatherData(WeatherData newweatherdata) throws SQLException {
+        return this.weatherDataDAO.insertWeatherData(newweatherdata);
+    }
+
+    /*---------------------------------------------------------------*/
+    
+    /*-------------- UPDATE - (WeatherData) *------------------------*/
+    
+    public int updateWeatherData(String recordId, WeatherData weatherDataActualizar) throws SQLException {
+        if (recordId == null || weatherDataActualizar == null) {
+            throw new IllegalArgumentException("Los argumentos son nulos");
+        }
+        return this.weatherDataDAO.updateWeatherData(recordId, weatherDataActualizar);
+    }
+    
+    /*---------------------------------------------------------------*/
+    
+    /*-------------- DELETE - (WeatherData) *------------------------*/
+    
+     public int deleteWeatherData(String recordId) throws SQLException {
+        if (recordId == null || recordId.length() == 0) {
+            throw new IllegalArgumentException("Debe indicar el filtro de búsqueda");
+        }
+
+        return this.weatherDataDAO.deleteWeatherData(recordId);
+    }
+    /*---------------------------------------------------------------*/
 }

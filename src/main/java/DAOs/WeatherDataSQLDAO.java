@@ -73,10 +73,10 @@ public class WeatherDataSQLDAO extends DataAccessObject {
         return weatherDataList;
     }
 
-    public WeatherData loadWeatherDataByRecordId(int recordId) throws SQLException {
+    public WeatherData loadWeatherDataByRecordId(String recordId) throws SQLException {
         String query = "SELECT * FROM WeatherData WHERE recordId = ?";
         try ( PreparedStatement stmt = cnt.prepareStatement(query)) {
-            stmt.setInt(1, recordId);
+            stmt.setString(1, recordId);
             try ( ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     return readWeatherDataFromResultSet(rs);
@@ -87,8 +87,20 @@ public class WeatherDataSQLDAO extends DataAccessObject {
         }
         return null;
     }
+    
+    public boolean weatherDataExist(String recordId) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM WeatherData WHERE recordId = ?";
+        try ( PreparedStatement stmt = cnt.prepareStatement(sql)) {
+            stmt.setString(1, recordId);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        }
+        return false;
+    }
 
-    protected int insertWeatherData(WeatherData weatherData) {
+    public int insertWeatherData(WeatherData weatherData) {
         int filasAfectadas = 0;
 
         String sentenciaSQL = "INSERT INTO WeatherData ("
@@ -131,7 +143,7 @@ public class WeatherDataSQLDAO extends DataAccessObject {
         return filasAfectadas;
     }
 
-    protected int updateWeatherData(int recordId, WeatherData weatherDataActualizar) {
+    public int updateWeatherData(String recordId, WeatherData weatherDataActualizar) {
         int filasAfectadas = 0;
 
         String sql = "UPDATE WeatherData SET "
@@ -162,7 +174,7 @@ public class WeatherDataSQLDAO extends DataAccessObject {
             stmt.setString(10, weatherDataActualizar.getWeatherCondition());
             stmt.setString(11, weatherDataActualizar.getForecast());
             stmt.setDate(12, (Date) weatherDataActualizar.getUpdated());
-            stmt.setInt(13, recordId);
+            stmt.setString(13, recordId);
 
             filasAfectadas = stmt.executeUpdate();
         } catch (SQLException e) {
@@ -171,18 +183,17 @@ public class WeatherDataSQLDAO extends DataAccessObject {
         return filasAfectadas;
     }
 
-    protected int deleteWeatherData(int recordId) {
+    public int deleteWeatherData(String recordId) {
         int filasAfectadas = 0;
 
         String sql = "DELETE FROM WeatherData WHERE " + WeatherDataTableColumns.COLUMN_RECORD_ID + " = ?";
 
         try ( PreparedStatement stmt = cnt.prepareStatement(sql)) {
-            stmt.setInt(1, recordId);
+            stmt.setString(1, recordId);
             filasAfectadas = stmt.executeUpdate();
         } catch (SQLException e) {
             throw new IllegalArgumentException("Error al eliminar datos meteorológicos con recordId: " + recordId, e);
         }
-
         return filasAfectadas;
     }
 
