@@ -13,6 +13,13 @@ import java.util.Properties;
 import java.util.HashMap;
 import java.util.Map;
 
+import DAOs.UserInfoSQLDAO;
+import DAOs.WeatherDataSQLDAO;
+import java.util.List;
+
+import Objects.UserInfo;
+import Objects.WeatherData;
+
 /**
  *
  * @author angsaegim
@@ -122,4 +129,33 @@ public class DataAccessManagerSQL implements AutoCloseable {
     }
 
     /* FUNCIONES CON DATOS */
+    
+    //para conectar y ejecutar las SQL en la bbdd
+    private Connection cnx;
+
+    private UserInfoSQLDAO userInfoDAO;
+    private WeatherDataSQLDAO weatherDataDAO;
+    
+    /*--------------SELECT - TODO*------------------------*/
+    public List<UserInfo> loadAllUsers() throws SQLException {
+        
+        return this.userInfoDAO.loadAllUsers();
+    }
+    
+    public List<WeatherData> loadAllWeatherData() throws SQLException {
+        
+        return this.weatherDataDAO.loadAllWeatherData();
+    }
+    
+    /*----------------------------------------------------------*/
+
+    /*--------------SELECT - CONTAINING *------------------------*/
+    
+    public UserInfo loadUsersByDNI(String dni) throws SQLException {
+        if (dni == null || dni.length() == 0) {
+            throw new IllegalArgumentException("Debe indicar el filtro de búsqueda");
+        }
+        
+        return this.userInfoDAO.loadUserByDni(dni);
+    }
 }

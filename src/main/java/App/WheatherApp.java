@@ -20,6 +20,8 @@ import com.mongodb.client.MongoDatabase;
 import java.sql.Connection;
 
 public class WheatherApp {
+    
+    /* EN INGLÉS */
 
     private static Scanner tcl = new Scanner(System.in);
 

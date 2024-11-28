@@ -9,7 +9,7 @@ import java.util.Date;
  *
  * @author angel
  */
-public class WheatherData {
+public class WeatherData {
     
     private int recordId;
     private String city;
@@ -26,7 +26,7 @@ public class WheatherData {
     private Date updated;
     
     //Con id
-    public WheatherData(int recordId, String city, String country, double latitude, double longitude, Date date,
+    public WeatherData(int recordId, String city, String country, double latitude, double longitude, Date date,
                        int temperatureCelsius, int humidityPercent, double precipitationMm, int windSpeedKmh,
                        String weatherCondition, String forecast, Date updated){
         
@@ -46,7 +46,7 @@ public class WheatherData {
     }
     
     //Sin id
-    public WheatherData(String city, String country, double latitude, double longitude, Date date,
+    public WeatherData(String city, String country, double latitude, double longitude, Date date,
                        int temperatureCelsius, int humidityPercent, double precipitationMm, int windSpeedKmh,
                        String weatherCondition, String forecast, Date updated){
         
@@ -62,6 +62,10 @@ public class WheatherData {
         this.weatherCondition = weatherCondition;
         this.forecast = forecast;
         this.updated = updated;
+    }
+    
+    public WeatherData(){
+        
     }
 
     /**
