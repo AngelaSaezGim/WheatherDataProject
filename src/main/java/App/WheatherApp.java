@@ -68,9 +68,9 @@ public class WheatherApp {
 
                     switch (opcionElegida) {
                         case QUERY_ALL:
-                            DataAccessManagerMongoDB.getInstance();
                             break;
                         case QUERY_BY_CODE:
+                            MetodosMenu.verUserInfo(managerSQL);
                             break;
                         case QUERY_CLIENTES_INSERT:
                             break;
@@ -100,13 +100,9 @@ public class WheatherApp {
     }
 
     private static void printOptions() {
-        StringBuilder sb = new StringBuilder()
-                .append("\n\n\nElija una opción:\n")
-                .append("\t1) Cambiar Base de datos (SQL/MongoDB) \n")
-                .append("\t2)\n")
-                .append("\t3)\n")
-                .append("\t4)\n")
-                .append("Opción: ");
-        System.out.print(sb.toString());
+        System.out.println("\n\n\nElija una opción:\n");
+        System.out.println("\t1) Cambiar Base de datos (SQL/MongoDB)");
+        System.out.println("\t2) Ver Usuarios");
+        System.out.println("\t3) Ver WeatherData");
     }
 }

@@ -49,10 +49,11 @@ public class MetodosMenu {
     
     //1 - Ver Los Usuarios//
     public static void verUserInfo(DataAccessManagerSQL managerSQL) throws SQLException {
-        //List<UserInfo> allUsers = managerSQL.loadAllUserInfo();
-        //printUserInfo(allUsers);
+        List<UserInfo> allUsers = managerSQL.loadAllUsers();
+        printUserInfo(allUsers);
     }
 
+    //Complementario a verUserInfo
     public static void printUserInfo(List<UserInfo> users) {
         if (users == null || users.isEmpty()) {
             System.out.println("No hay registros...");
