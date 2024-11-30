@@ -72,7 +72,7 @@ public class WeatherApp {
                             managerMongoDB.close(); // Cerrar la conexión MongoD
                             System.out.println("Conexion a MongoDB cerrada");
                         }
-                         // Conectar a SQL usando el Singleton -No necesitas abrir una nueva conexión cada vez.
+                        // Conectar a SQL usando el Singleton -No necesitas abrir una nueva conexión cada vez.
                         managerSQL = DataAccessManagerSQL.getInstance(); // Usamos la instancia existente del Singleton
                         isUsingMongoDB = false;
                     } else {
@@ -85,9 +85,10 @@ public class WeatherApp {
                         managerMongoDB = DataAccessManagerMongoDB.getInstance(); // Usamos la instancia existente del Singleton
                         isUsingMongoDB = true;
                     }
+                    MetodosMenu.esperarIntro();
                     break;
                 case QUERY_MANAGERBD:
-                    ManagerMenuOption opcionElegida2 = null;
+                     ManagerMenuOption opcionElegida2 = null;
                     do {
                         // Mostrar qué base de datos estamos gestionando y el número de elementos
                         mostrarEstadoBaseDeDatos();  // Aquí llamas al método que muestra el estado
@@ -95,30 +96,45 @@ public class WeatherApp {
                         opcionElegida2 = readChoice2();
                         switch (opcionElegida2) {
                             case QUERY_INSERT:
+                                System.out.println("Insertar");
+                                MetodosMenu.esperarIntro();
                                 break;
                             case QUERY_DELETE:
+                                System.out.println("Borrar");
+                                MetodosMenu.esperarIntro();
                                 break;
                             case QUERY_LIST:
+                                System.out.println("Listar Datos");
+                                MetodosMenu.esperarIntro();
                                 break;
                             case QUERY_SYNCRONIZED:
+                                System.out.println("Sincronizar");
+                                MetodosMenu.esperarIntro();
                                 break;
                             case QUERY_UPSERT:
                                 if (isUsingMongoDB) {
+                                    System.out.println("Operación UPSERT");
                                     //realizarUpsert(mongoDatabase);
                                 } else {
                                     System.out.println("La operación Upsert solo está disponible en MongoDB.");
                                 }
+                                MetodosMenu.esperarIntro();
                                 break;
                             case QUERY_UPLOAD_XML_Mdb:
-                                // Opción de subir XML
                                 if (isUsingMongoDB) {
-                                    System.out.println("Subiendo archivo XML a MongoDB...");
+                                   System.out.println("Subir XML");
                                     //subirXMLAMongoDB(managerMongoDB);
                                 } else {
                                     System.out.println("La opción de subir XML solo está disponible para MongoDB.");
                                 }
+                                MetodosMenu.esperarIntro();
                                 break;
                             case EXIT_MANAGER:
+                                System.out.println("Saliendo del gestor...");
+                                break;
+                            default:
+                                System.out.println("Opción no válida.");
+                                break;
                         }
                     } while (opcionElegida2 != ManagerMenuOption.EXIT_MANAGER);
                     break;
@@ -158,7 +174,7 @@ public class WeatherApp {
     }
 
     private static ManagerMenuOption readChoice2() {
-        try {
+       try {
             int choiceInt = Integer.valueOf(tcl.nextLine());
             return ManagerMenuOption.values()[choiceInt - 1];
         } catch (RuntimeException re) {
@@ -166,7 +182,8 @@ public class WeatherApp {
             return readChoice2();
         }
     }
- // Método para cambiar a MongoDB (sin abrir nueva conexión, ya gestionado por Singleton)
+    // Método para cambiar a MongoDB (sin abrir nueva conexión, ya gestionado por Singleton)
+
     private static DataAccessManagerMongoDB changeConnectionMongoDb() {
         // Usar la instancia singleton para MongoDB
         return DataAccessManagerMongoDB.getInstance();
@@ -177,7 +194,6 @@ public class WeatherApp {
         // Usar la instancia singleton para SQL
         return DataAccessManagerSQL.getInstance();
     }
-
 
     private static void chooseDatabase() {
         System.out.println("Antes de nada, ¿a qué base de datos de WeatherData quieres conectarte? (Luego podrás cambiarla)");
