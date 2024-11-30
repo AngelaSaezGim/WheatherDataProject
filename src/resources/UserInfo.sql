@@ -10,6 +10,8 @@ CREATE TABLE users (
 
 GRANT ALL PRIVILEGES ON `userinfo`.* TO 'root'@'localhost';
 
+SELECT * FROM users;
+
 INSERT INTO users ( dni, name, surname, city
 ) VALUES 
 ('73665652X','Paco','Saez','Madrid'),

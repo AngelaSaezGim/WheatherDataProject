@@ -57,6 +57,7 @@ public class DataAccessManagerMongoDB implements AutoCloseable {
             loadMongoDBParams();
             singleton = new DataAccessManagerMongoDB();
         }
+        System.out.println("Conexión a MongoDB realizada (instancia)");
         return singleton;
     }
 

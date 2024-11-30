@@ -30,7 +30,7 @@ public class DataAccessManagerSQL implements AutoCloseable {
      * ************************ PARTE ESTÁTICA ****************************
      */
     //Por default usamos wheater data pero podemos cambiar a userInfo
-    private static final String DEFAULT_DB_NAME = "WeatherData";
+    private static final String DEFAULT_DB_NAME = "weatherData";
     private static final String MYSQL_DB_DRIVER__CLASS_NAME = "com.mysql.cj.jdbc.Driver";
     private static final String DB_CONFIG_FILE_NAME = "src/resources/db.properties";
 
@@ -48,6 +48,8 @@ public class DataAccessManagerSQL implements AutoCloseable {
     // Instanciamos una UNICA CONEXIÓN (SINGLETON)
     private DataAccessManagerSQL() {
         loadDataBaseParams(); //para saber si es userInfo o wheaterData
+        this.userInfoDAO = new UserInfoSQLDAO(getConnection("UserInfo"));
+        this.weatherDataDAO = new WeatherDataSQLDAO(getConnection("WeatherData"));
     }
 
     // Obtiene la instancia única de DataAccessManagerSQL
@@ -55,6 +57,7 @@ public class DataAccessManagerSQL implements AutoCloseable {
         if (singleton == null) {
             singleton = new DataAccessManagerSQL();
         }
+        System.out.println("Conexión a SQL realizada (instancia)");
         return singleton;
     }
 
@@ -155,6 +158,10 @@ public class DataAccessManagerSQL implements AutoCloseable {
         }
         return this.userInfoDAO.loadUserByDni(dni);
     }
+    
+        public boolean userExist(String dni) throws SQLException {
+        return this.userInfoDAO.userExist(dni);
+    }
 
     public WeatherData loadWeatherDataByRecordId(String id) throws SQLException {
         if (id == null || id.length() == 0) {
@@ -162,10 +169,14 @@ public class DataAccessManagerSQL implements AutoCloseable {
         }
         return this.weatherDataDAO.loadWeatherDataByRecordId(id);
     }
-
-    public boolean userExist(String dni) throws SQLException {
-        return this.userInfoDAO.userExist(dni);
+    
+    public WeatherData loadWeatherDataByCity(String city) throws SQLException {
+        if (city == null || city.length() == 0) {
+            throw new IllegalArgumentException("Debe indicar el filtro de búsqueda");
+        }
+        return this.weatherDataDAO.loadWeatherDataByCity(city);
     }
+
 
     public boolean weatherDataExist(String recordId) throws SQLException {
         return this.weatherDataDAO.weatherDataExist(recordId);

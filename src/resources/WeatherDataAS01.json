@@ -1,5 +1,4 @@
-{
- "WeatherData": [
+[
  {
  "record_id": 401,
  "city": "Madrid",
@@ -79,5 +78,4 @@
  "forecast": "Rain expected to continue until evening",
  "updated": "2023-11-10"
  }
- ]
-}
+]

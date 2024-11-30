@@ -31,7 +31,8 @@ INSERT INTO WeatherDataAS01 (
 (404, 'Alicante', 'Spain', 38.3452, -0.4810, '2023-11-10', 21, 58, 0.0, 25, 'Sunny', 'Clear skies with no precipitation', '2023-11-10'),
 (405, 'Castellón de la Plana', 'Spain', 39.9860, -0.0376, '2023-11-10', 14, 85, 5.2, 18, 'Heavy rain', 'Rain expected to continue until evening', '2023-11-10');
 
-SELECT * FROM WeatherDataAS01
+SELECT * FROM WeatherDataAS01;
+SELECT * FROM WeatherData WHERE city = "Madrid"
 /*
 DROP TABLE IF EXISTS WeatherDataAS01;
 */

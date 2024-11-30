@@ -25,17 +25,17 @@ public class WeatherDataSQLDAO extends DataAccessObject {
 
     private class WeatherDataTableColumns {
 
-        private static final String COLUMN_RECORD_ID = "recordId";
+        private static final String COLUMN_RECORD_ID = "record_id";
         private static final String COLUMN_CITY = "city";
         private static final String COLUMN_COUNTRY = "country";
         private static final String COLUMN_LATITUDE = "latitude";
         private static final String COLUMN_LONGITUDE = "longitude";
         private static final String COLUMN_DATE = "date";
-        private static final String COLUMN_TEMPERATURE_CELSIUS = "temperatureCelsius";
-        private static final String COLUMN_HUMIDITY_PERCENT = "humidityPercent";
-        private static final String COLUMN_PRECIPITATION_MM = "precipitationMm";
-        private static final String COLUMN_WIND_SPEED_KMH = "windSpeedKmh";
-        private static final String COLUMN_WEATHER_CONDITION = "weatherCondition";
+        private static final String COLUMN_TEMPERATURE_CELSIUS = "temperature_celsius";
+        private static final String COLUMN_HUMIDITY_PERCENT = "humidity_percent";  // Cambié la mayúscula 'P' por minúscula
+        private static final String COLUMN_PRECIPITATION_MM = "precipitation_mm";
+        private static final String COLUMN_WIND_SPEED_KMH = "wind_speed_kmh";
+        private static final String COLUMN_WEATHER_CONDITION = "weather_condition";
         private static final String COLUMN_FORECAST = "forecast";
         private static final String COLUMN_UPDATED = "updated";
     }
@@ -61,7 +61,7 @@ public class WeatherDataSQLDAO extends DataAccessObject {
 
     public List<WeatherData> loadAllWeatherData() throws SQLException {
         List<WeatherData> weatherDataList = new ArrayList<>();
-        String query = "SELECT * FROM WeatherData";
+        String query = "SELECT * FROM WeatherDataAS01";
 
         try ( PreparedStatement stmt = cnt.prepareStatement(query);  ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
@@ -74,7 +74,7 @@ public class WeatherDataSQLDAO extends DataAccessObject {
     }
 
     public WeatherData loadWeatherDataByRecordId(String recordId) throws SQLException {
-        String query = "SELECT * FROM WeatherData WHERE recordId = ?";
+        String query = "SELECT * FROM WeatherDataAS01 WHERE recordId = ?";
         try ( PreparedStatement stmt = cnt.prepareStatement(query)) {
             stmt.setString(1, recordId);
             try ( ResultSet rs = stmt.executeQuery()) {
@@ -87,9 +87,25 @@ public class WeatherDataSQLDAO extends DataAccessObject {
         }
         return null;
     }
-    
+
+    //CARGAMOS GRADOS CELSIUS SEGUN LA CIUDAD EN LA QUE ESTEMOS (saludo inicial)
+    public WeatherData loadWeatherDataByCity(String ciudad) throws SQLException {
+        String query = "SELECT * FROM WeatherDataAS01 WHERE city = ?";
+        try ( PreparedStatement stmt = cnt.prepareStatement(query)) {
+            stmt.setString(1, ciudad);
+            try ( ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return readWeatherDataFromResultSet(rs);
+                }
+            }
+        } catch (SQLException e) {
+            throw new SQLException("Error al cargar los datos meteorológicos para la ciudad: " + ciudad, e);
+        }
+        return null;
+    }
+
     public boolean weatherDataExist(String recordId) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM WeatherData WHERE recordId = ?";
+        String sql = "SELECT COUNT(*) FROM WeatherDataAS01 WHERE recordId = ?";
         try ( PreparedStatement stmt = cnt.prepareStatement(sql)) {
             stmt.setString(1, recordId);
             ResultSet rs = stmt.executeQuery();
@@ -103,7 +119,7 @@ public class WeatherDataSQLDAO extends DataAccessObject {
     public int insertWeatherData(WeatherData weatherData) {
         int filasAfectadas = 0;
 
-        String sentenciaSQL = "INSERT INTO WeatherData ("
+        String sentenciaSQL = "INSERT INTO WeatherDataAS01 ("
                 + WeatherDataTableColumns.COLUMN_RECORD_ID + ", "
                 + WeatherDataTableColumns.COLUMN_CITY + ", "
                 + WeatherDataTableColumns.COLUMN_COUNTRY + ", "
@@ -146,7 +162,7 @@ public class WeatherDataSQLDAO extends DataAccessObject {
     public int updateWeatherData(String recordId, WeatherData weatherDataActualizar) {
         int filasAfectadas = 0;
 
-        String sql = "UPDATE WeatherData SET "
+        String sql = "UPDATE WeatherDataAS01 SET "
                 + WeatherDataTableColumns.COLUMN_CITY + " = ?, "
                 + WeatherDataTableColumns.COLUMN_COUNTRY + " = ?, "
                 + WeatherDataTableColumns.COLUMN_LATITUDE + " = ?, "
@@ -186,7 +202,7 @@ public class WeatherDataSQLDAO extends DataAccessObject {
     public int deleteWeatherData(String recordId) {
         int filasAfectadas = 0;
 
-        String sql = "DELETE FROM WeatherData WHERE " + WeatherDataTableColumns.COLUMN_RECORD_ID + " = ?";
+        String sql = "DELETE FROM WeatherDataAS01 WHERE " + WeatherDataTableColumns.COLUMN_RECORD_ID + " = ?";
 
         try ( PreparedStatement stmt = cnt.prepareStatement(sql)) {
             stmt.setString(1, recordId);

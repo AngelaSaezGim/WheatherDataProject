@@ -10,4 +10,6 @@ package DAOs;
  */
 public class WeatherDataMongoDbDAO {
     
+    
+    
 }

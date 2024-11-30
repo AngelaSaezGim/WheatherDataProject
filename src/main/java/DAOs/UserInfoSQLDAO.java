@@ -68,7 +68,7 @@ public class UserInfoSQLDAO extends DataAccessObject {
     }
     
     public boolean userExist(String dni) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM users WHERE idFabrica = ?";
+        String sql = "SELECT COUNT(*) FROM users WHERE dni = ?";
         try ( PreparedStatement stmt = cnt.prepareStatement(sql)) {
             stmt.setString(1, dni);
             ResultSet rs = stmt.executeQuery();
