@@ -139,78 +139,79 @@ public class DataAccessManagerSQL implements AutoCloseable {
     private WeatherDataSQLDAO weatherDataDAO;
 
     /*--------------SELECT - TODO*------------------------*/
-    public List<UserInfo> loadAllUsers() throws SQLException {
+    public List<UserInfo> loadAllUsersSQL() throws SQLException {
 
         return this.userInfoDAO.loadAllUsers();
     }
 
-    public List<WeatherData> loadAllWeatherData() throws SQLException {
+    public List<WeatherData> loadAllWeatherDataSQL() throws SQLException {
 
         return this.weatherDataDAO.loadAllWeatherData();
+    }
+
+    public int countWeatherDataSQL() throws SQLException {
+        return this.weatherDataDAO.countWeatherData();
     }
 
     /*----------------------------------------------------------*/
 
  /*-------------- SELECT - CONTAINING *------------------------*/
-    public UserInfo loadUsersByDNI(String dni) throws SQLException {
+    public UserInfo loadUsersByDNISQL(String dni) throws SQLException {
         if (dni == null || dni.length() == 0) {
             throw new IllegalArgumentException("Debe indicar el filtro de búsqueda");
         }
         return this.userInfoDAO.loadUserByDni(dni);
     }
-    
-        public boolean userExist(String dni) throws SQLException {
+
+    public boolean userExistSQL(String dni) throws SQLException {
         return this.userInfoDAO.userExist(dni);
     }
 
-    public WeatherData loadWeatherDataByRecordId(String id) throws SQLException {
+    public WeatherData loadWeatherDataByRecordIdSQL(String id) throws SQLException {
         if (id == null || id.length() == 0) {
             throw new IllegalArgumentException("Debe indicar el filtro de búsqueda");
         }
         return this.weatherDataDAO.loadWeatherDataByRecordId(id);
     }
-    
-    public WeatherData loadWeatherDataByCity(String city) throws SQLException {
+
+    public List<WeatherData> loadWeatherDataByCitySQL(String city) throws SQLException {
         if (city == null || city.length() == 0) {
             throw new IllegalArgumentException("Debe indicar el filtro de búsqueda");
         }
         return this.weatherDataDAO.loadWeatherDataByCity(city);
     }
 
-
-    public boolean weatherDataExist(String recordId) throws SQLException {
-        return this.weatherDataDAO.weatherDataExist(recordId);
+    public List<WeatherData> loadWeatherDataByCitiesSQL(List<String> ciudades) throws SQLException {
+        if (ciudades == null || ciudades.isEmpty()) {
+            throw new IllegalArgumentException("Debe indicar el filtro de búsqueda");
+        }
+        return this.weatherDataDAO.loadWeatherDataByCities(ciudades);
     }
 
     /*------------------------------------------------------------*/
-    
-    /*-------------- INSERT - (WeatherData) *------------------------*/
-    
-    public int insertarWeatherData(WeatherData newweatherdata) throws SQLException {
+ /*-------------- INSERT - (WeatherData) *------------------------*/
+    public int insertarWeatherDataSQL(WeatherData newweatherdata) throws SQLException {
         return this.weatherDataDAO.insertWeatherData(newweatherdata);
     }
 
-    /*---------------------------------------------------------------*/
-    
-    /*-------------- UPDATE - (WeatherData) *------------------------*/
-    
-    public int updateWeatherData(String recordId, WeatherData weatherDataActualizar) throws SQLException {
-        if (recordId == null || weatherDataActualizar == null) {
-            throw new IllegalArgumentException("Los argumentos son nulos");
-        }
-        return this.weatherDataDAO.updateWeatherData(recordId, weatherDataActualizar);
+    public boolean existsWeatherData(String recordId) {
+        return this.weatherDataDAO.weatherDataExist(recordId);
     }
-    
+
     /*---------------------------------------------------------------*/
-    
-    /*-------------- DELETE - (WeatherData) *------------------------*/
-    
-     public int deleteWeatherData(String recordId) throws SQLException {
-        if (recordId == null || recordId.length() == 0) {
+
+    /*---------------------------------------------------------------*/
+ /*-------------- DELETE - (WeatherData) *------------------------*/
+    public int deleteAllWeatherDataSQL() throws SQLException {
+        return this.weatherDataDAO.deleteAllWeatherDataSQL();
+    }
+
+    public int deleteWeatherDataByListSQL(List<WeatherData> weatherDataList) throws SQLException {
+        if (weatherDataList == null || weatherDataList.isEmpty()) {
             throw new IllegalArgumentException("Debe indicar el filtro de búsqueda");
         }
-
-        return this.weatherDataDAO.deleteWeatherData(recordId);
+        return this.weatherDataDAO.deleteWeatherDataByListSQL(weatherDataList);
     }
+
     /*---------------------------------------------------------------*/
 }

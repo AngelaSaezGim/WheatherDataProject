@@ -8,8 +8,6 @@ package App;
  *
  * @author angsaegim
  */
-import java.sql.SQLException;
-import java.util.List;
 import java.util.Scanner;
 
 //SQL Connection
@@ -18,6 +16,7 @@ import Connections.DataAccessManagerSQL;
 import Connections.DataAccessManagerMongoDB;
 import com.mongodb.client.MongoDatabase;
 import java.sql.Connection;
+import java.sql.SQLException;
 
 public class WeatherApp {
 
@@ -25,42 +24,39 @@ public class WeatherApp {
     private static Scanner tcl = new Scanner(System.in);
 
     //Opciones del menú principal
-    private enum MainMenuOptions {
+    protected enum MainMenuOptions {
         QUERY_CHANGEBD, QUERY_MANAGERBD, EXIT
     };
 
-    private enum ManagerMenuOption {
+    protected enum ManagerMenuOption {
         QUERY_INSERT, QUERY_DELETE, QUERY_LIST, QUERY_SYNCRONIZED, QUERY_UPSERT, QUERY_UPLOAD_XML_Mdb,
         EXIT_MANAGER
     };
 
-    // Por defecto iniciamos con SQL al inicio (ya que es el que quiero usar para gestionar UserInfo)
     private static boolean isUsingMongoDB = false;
 
     private static DataAccessManagerSQL managerSQL = null;
     private static DataAccessManagerMongoDB managerMongoDB = null;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws SQLException {
 
         //Desactivamos logs de MongoDB
         Utilities.disableMongoLogging();
 
         //Luego la implementaré
-        //userWelcome();
+        userWelcome();
+        
         //Elegimos la primera base de datos a la que nos conectamos (mongoDB o SQL)
-        //Usaremos variable isUsingMongoDB (es MUY importante en el menú)
-        //Si nos conectamos a SQL se quedará en false
-        //Si nos conectamos a MongoDB se quedará en true
+        //variable isUsingMongoDB (es MUY importante en el menú)
         chooseDatabase();
 
         MainMenuOptions opcionElegida = null;
         do {
-            // Mostrar qué base de datos estamos gestionando
             // Mostrar qué base de datos estamos gestionando y el número de elementos
             mostrarEstadoBaseDeDatos();  // Aquí llamas al método que muestra el estado
 
-            printMainMenu();
-            opcionElegida = readChoice();
+            MetodosMenu.printMainMenu();
+            opcionElegida = MetodosMenu.readChoice();
 
             switch (opcionElegida) {
                 case QUERY_CHANGEBD:
@@ -88,23 +84,42 @@ public class WeatherApp {
                     MetodosMenu.esperarIntro();
                     break;
                 case QUERY_MANAGERBD:
-                     ManagerMenuOption opcionElegida2 = null;
+                    ManagerMenuOption opcionElegida2 = null;
                     do {
                         // Mostrar qué base de datos estamos gestionando y el número de elementos
-                        mostrarEstadoBaseDeDatos();  // Aquí llamas al método que muestra el estado
-                        printManagerMenu();
-                        opcionElegida2 = readChoice2();
+                        mostrarEstadoBaseDeDatos();  // método que muestra el estado
+                        MetodosMenu.printManagerMenu();
+                        opcionElegida2 = MetodosMenu.readChoice2();
                         switch (opcionElegida2) {
                             case QUERY_INSERT:
-                                System.out.println("Insertar");
+                                if (isUsingMongoDB) {
+                                    System.out.println("Insertar en MongoDB");
+                                    //
+                                } else {
+                                    System.out.println("Insertar en SQL");
+                                    MetodosBDMenu.insertarWeatherDataSQL(managerSQL);
+                                }
                                 MetodosMenu.esperarIntro();
                                 break;
                             case QUERY_DELETE:
-                                System.out.println("Borrar");
+                                if (isUsingMongoDB) {
+                                    System.out.println("Borrar en MongoDB");
+                                    //
+                                } else {
+                                    System.out.println("Borrar en SQL");
+                                    MetodosBDMenu.deleteWeatherData(managerSQL);
+                                }
                                 MetodosMenu.esperarIntro();
                                 break;
                             case QUERY_LIST:
                                 System.out.println("Listar Datos");
+                                 if (isUsingMongoDB) {
+                                    System.out.println("Listar en MongoDB");
+                                    //realizarUpsert(mongoDatabase);
+                                } else {
+                                    System.out.println("Listar en SQL");
+                                    MetodosBDMenu.listarWeatherDataSQL(managerSQL);
+                                }
                                 MetodosMenu.esperarIntro();
                                 break;
                             case QUERY_SYNCRONIZED:
@@ -122,7 +137,7 @@ public class WeatherApp {
                                 break;
                             case QUERY_UPLOAD_XML_Mdb:
                                 if (isUsingMongoDB) {
-                                   System.out.println("Subir XML");
+                                    System.out.println("Subir XML");
                                     //subirXMLAMongoDB(managerMongoDB);
                                 } else {
                                     System.out.println("La opción de subir XML solo está disponible para MongoDB.");
@@ -145,98 +160,6 @@ public class WeatherApp {
         System.out.println("Salimos del programa, adios!!");
     }
 
-    public static void printMainMenu() {
-        System.out.println("Elija una opción:");
-        System.out.println("\t1) Cambiar Base de datos (SQL/MongoDB)");
-        System.out.println("\t2) Gestionar BD");
-        System.out.println("\t3) Salir del programa");
-    }
-
-    public static void printManagerMenu() {
-        System.out.println("Selecciona una opción para gestionar la base de datos:");
-        System.out.println("\t1. Insertar datos a la BD");
-        System.out.println("\t2. Borrar elementos de la BD");
-        System.out.println("\t3. Listar elementos");
-        System.out.println("\t4. Sincronizar Bases de Datos WeatherData");
-        System.out.println("\t5. Realizar Upsert (SOLO MONGODB)");
-        System.out.println("\t6. Subir XML (SOLO MONGODB)");
-        System.out.println("\t7. Salir del menú de gestión");
-    }
-
-    private static MainMenuOptions readChoice() {
-        try {
-            int choiceInt = Integer.valueOf(tcl.nextLine());
-            return MainMenuOptions.values()[choiceInt - 1];
-        } catch (RuntimeException re) {
-            System.out.println("Opción inválida... Inténtelo otra vez.");
-            return readChoice();
-        }
-    }
-
-    private static ManagerMenuOption readChoice2() {
-       try {
-            int choiceInt = Integer.valueOf(tcl.nextLine());
-            return ManagerMenuOption.values()[choiceInt - 1];
-        } catch (RuntimeException re) {
-            System.out.println("Opción inválida... Inténtelo otra vez.");
-            return readChoice2();
-        }
-    }
-    // Método para cambiar a MongoDB (sin abrir nueva conexión, ya gestionado por Singleton)
-
-    private static DataAccessManagerMongoDB changeConnectionMongoDb() {
-        // Usar la instancia singleton para MongoDB
-        return DataAccessManagerMongoDB.getInstance();
-    }
-
-    // Método para cambiar a SQL (sin abrir nueva conexión, ya gestionado por Singleton)
-    private static DataAccessManagerSQL changeConnectionSQL() {
-        // Usar la instancia singleton para SQL
-        return DataAccessManagerSQL.getInstance();
-    }
-
-    private static void chooseDatabase() {
-        System.out.println("Antes de nada, ¿a qué base de datos de WeatherData quieres conectarte? (Luego podrás cambiarla)");
-        System.out.println("1) MongoDB");
-        System.out.println("2) SQL");
-        int choice = Integer.parseInt(tcl.nextLine());
-
-        switch (choice) {
-            case 1:
-                changeConnectionMongoDb();
-                isUsingMongoDB = true;
-                break;
-            case 2:
-                changeConnectionSQL();
-                isUsingMongoDB = false;
-                break;
-            default:
-                System.out.println("Dato no válido, elija 1 o 2. Vuelve a intentar.");
-                chooseDatabase(); // Recursividad para volver a pedir la elección
-                break;
-        }
-    }
-
-    //*** SE REPRODUCIRAN SIEMPRE Y NOS DARAN EL ESTADO DE NUESTRAS BD*//
-    private static void mostrarEstadoBaseDeDatos() {
-
-        System.out.println("Actualmente estamos gestionando la base de datos: "
-                + (isUsingMongoDB ? "MongoDB" : "SQL"));
-        /*
-    if (isUsingMongoDB) {
-        // Contamos los elementos en MongoDB
-        long countMongoDB = contarElementosMongoDB(managerMongoDB.getDatabase());
-        System.out.println("Número de elementos en MongoDB: " + countMongoDB);
-    } else {
-        try {
-            // Contamos los elementos en SQL
-            int countSQL = contarElementosSQL(weatherConnection);
-            System.out.println("Número de elementos en SQL: " + countSQL);
-        } catch (SQLException e) {
-            System.err.println("Error al contar los elementos en SQL: " + e.getMessage());
-        }*/
-    }
-
     public static void userWelcome() {
 
         //INSTANCIA CONEXIÓN SQL (uso singleton) - SOLO LA ABRIMOS Y CERRAMOS PARA YSER INFO
@@ -248,8 +171,8 @@ public class WeatherApp {
             // Conexión a UserInfo (Solo la usamos aqui)
             try ( Connection userInfoConnection = managerSQL.getConnection("UserInfo")) {
                 System.out.println("Conexión a UserInfo exitosa.");
-                MetodosMenu.solicitarUsers(managerSQL);
-                MetodosMenu.validarUsuario(managerSQL); //Te valida e imprime el mensaje de Binvenida
+                MetodosBDMenu.solicitarUsersSQL(managerSQL);
+                MetodosBDMenu.validarUsuarioSQL(managerSQL); //Te valida e imprime el mensaje de Binvenida
             } catch (Exception e) {
                 System.err.println("Error en UserInfo: " + e.getMessage());
             } finally {
@@ -261,7 +184,53 @@ public class WeatherApp {
         } finally {
             //no se cierra explicitamente ya que usamos autocloseable pero lo  marcamos.
             System.out.println("Cerrada la conexión con weaterData SQL para usuarios");
+            MetodosMenu.esperarIntro();
         }
-        MetodosMenu.esperarIntro();
+    }
+
+    private static void chooseDatabase() {
+        System.out.println("Antes de nada, ¿a qué base de datos de WeatherData quieres conectarte? (Luego podrás cambiarla)");
+        System.out.println("1) MongoDB");
+        System.out.println("2) SQL");
+
+        boolean validInput = false;
+        while (!validInput) {
+            try {
+                System.out.print("Elige una opción: ");
+                int choice = Integer.parseInt(tcl.nextLine());
+                switch (choice) {
+                    case 1:
+                        managerMongoDB = DataAccessManagerMongoDB.getInstance();
+                        isUsingMongoDB = true;
+                        validInput = true;
+                        break;
+                    case 2:
+                        managerSQL = DataAccessManagerSQL.getInstance(); 
+                        isUsingMongoDB = false;
+                        validInput = true;
+                        break;
+                    default:
+                        System.out.println("Dato no válido, elija 1 o 2. Inténtelo nuevamente.");
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Entrada no válida. Por favor, ingrese un número (1 o 2).");
+            }
+        }
+    }
+
+    //*** SE REPRODUCIRAN SIEMPRE Y NOS DARAN EL ESTADO DE NUESTRAS BD*//
+    private static void mostrarEstadoBaseDeDatos() throws SQLException {
+
+        System.out.println("Actualmente estamos gestionando la base de datos: "
+                + (isUsingMongoDB ? "MongoDB" : "SQL"));
+        if (isUsingMongoDB) {
+            long count = 0;
+            //long count = contarElementosMongoDB("WeatherData");
+            System.out.println("MONGODB NO IMPLEMENTADO");
+            System.out.println("Número de elementos en la colección MongoDB: " + count);
+        } else {
+            int count = managerSQL.countWeatherDataSQL();
+            System.out.println("Número de elementos en la tabla SQL: " + count);
+        }
     }
 }
