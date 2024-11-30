@@ -14,7 +14,6 @@ import java.util.Scanner;
 import Connections.DataAccessManagerSQL;
 //MongoDb Connection
 import Connections.DataAccessManagerMongoDB;
-import com.mongodb.client.MongoDatabase;
 import java.sql.Connection;
 import java.sql.SQLException;
 
@@ -44,8 +43,7 @@ public class WeatherApp {
         Utilities.disableMongoLogging();
 
         //Luego la implementaré
-        userWelcome();
-        
+        //userWelcome();
         //Elegimos la primera base de datos a la que nos conectamos (mongoDB o SQL)
         //variable isUsingMongoDB (es MUY importante en el menú)
         chooseDatabase();
@@ -94,16 +92,16 @@ public class WeatherApp {
                             case QUERY_INSERT:
                                 if (isUsingMongoDB) {
                                     System.out.println("Insertar en MongoDB");
-                                    //
+                                    managerMongoDB.insertWeatherDataMongoDB();
                                 } else {
                                     System.out.println("Insertar en SQL");
                                     MetodosBDMenu.insertarWeatherDataSQL(managerSQL);
                                 }
-                                MetodosMenu.esperarIntro();
                                 break;
                             case QUERY_DELETE:
                                 if (isUsingMongoDB) {
                                     System.out.println("Borrar en MongoDB");
+                                    managerMongoDB.deleteWeatherData();
                                     //
                                 } else {
                                     System.out.println("Borrar en SQL");
@@ -113,9 +111,9 @@ public class WeatherApp {
                                 break;
                             case QUERY_LIST:
                                 System.out.println("Listar Datos");
-                                 if (isUsingMongoDB) {
+                                if (isUsingMongoDB) {
                                     System.out.println("Listar en MongoDB");
-                                    //realizarUpsert(mongoDatabase);
+                                    managerMongoDB.listarWeatherDataMongoDB();
                                 } else {
                                     System.out.println("Listar en SQL");
                                     MetodosBDMenu.listarWeatherDataSQL(managerSQL);
@@ -123,10 +121,19 @@ public class WeatherApp {
                                 MetodosMenu.esperarIntro();
                                 break;
                             case QUERY_SYNCRONIZED:
+                                /*
+                                4. Opció per sincronitzar.
+                                a) [M 1p] Solament vorem aquesta opció si una de les BD te mes elements que
+                                l’altra. Sincronitzar vol dir substituir les dades d’una BD per les de l’altra.
+                                b) [0,25p] Abans de sincronitzar, haurem de sol·licitar el vist i plau de l’usuari.
+                                 */
                                 System.out.println("Sincronizar");
                                 MetodosMenu.esperarIntro();
                                 break;
                             case QUERY_UPSERT:
+                                /*
+                                5. [M 0.50p]En cas que estem a la BD de Mongo, opció d’Upsert d’un element donat.
+                                 */
                                 if (isUsingMongoDB) {
                                     System.out.println("Operación UPSERT");
                                     //realizarUpsert(mongoDatabase);
@@ -136,6 +143,10 @@ public class WeatherApp {
                                 MetodosMenu.esperarIntro();
                                 break;
                             case QUERY_UPLOAD_XML_Mdb:
+                                /*
+                                6. Opció per importar ítems (import.xml)
+                                a) [0,50p] Importarem els ítems d’un XML amb format de la teua elecció.
+                                 */
                                 if (isUsingMongoDB) {
                                     System.out.println("Subir XML");
                                     //subirXMLAMongoDB(managerMongoDB);
@@ -205,7 +216,7 @@ public class WeatherApp {
                         validInput = true;
                         break;
                     case 2:
-                        managerSQL = DataAccessManagerSQL.getInstance(); 
+                        managerSQL = DataAccessManagerSQL.getInstance();
                         isUsingMongoDB = false;
                         validInput = true;
                         break;
@@ -224,9 +235,7 @@ public class WeatherApp {
         System.out.println("Actualmente estamos gestionando la base de datos: "
                 + (isUsingMongoDB ? "MongoDB" : "SQL"));
         if (isUsingMongoDB) {
-            long count = 0;
-            //long count = contarElementosMongoDB("WeatherData");
-            System.out.println("MONGODB NO IMPLEMENTADO");
+            long count = managerMongoDB.countWeatherData();
             System.out.println("Número de elementos en la colección MongoDB: " + count);
         } else {
             int count = managerSQL.countWeatherDataSQL();
