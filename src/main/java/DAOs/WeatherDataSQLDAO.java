@@ -155,6 +155,13 @@ public class WeatherDataSQLDAO extends DataAccessObject {
     public int insertWeatherData(WeatherData weatherData) {
         int filasAfectadas = 0;
 
+        /*
+        Verificación de duplicados: 
+        Antes de insertar un registro, se verifica si el record_id ya existe en la base de datos. 
+        Si existe, se actualiza el registro; de lo contrario, se inserta un nuevo registro.
+        */
+        //verificar keys duplicadas antes de insertar
+        String checkQuery = "SELECT COUNT(*) FROM WeatherDataAS01 WHERE record_id = ?";
         String sentenciaSQL = "INSERT INTO WeatherDataAS01 ("
                 + WeatherDataTableColumns.COLUMN_RECORD_ID + ", "
                 + WeatherDataTableColumns.COLUMN_CITY + ", "
@@ -171,25 +178,63 @@ public class WeatherDataSQLDAO extends DataAccessObject {
                 + WeatherDataTableColumns.COLUMN_UPDATED
                 + ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-        try ( PreparedStatement stmt = cnt.prepareStatement(sentenciaSQL)) {
+        try ( PreparedStatement checkStmt = cnt.prepareStatement(checkQuery)) {
+            checkStmt.setInt(1, weatherData.getRecordId());
+            ResultSet rs = checkStmt.executeQuery();
+            if (rs.next() && rs.getInt(1) > 0) {
+                // Si ya existe un registro con el mismo record_id, puedes realizar un update en vez de insert
+                String updateSQL = "UPDATE WeatherDataAS01 SET "
+                        + WeatherDataTableColumns.COLUMN_CITY + " = ?, "
+                        + WeatherDataTableColumns.COLUMN_COUNTRY + " = ?, "
+                        + WeatherDataTableColumns.COLUMN_LATITUDE + " = ?, "
+                        + WeatherDataTableColumns.COLUMN_LONGITUDE + " = ?, "
+                        + WeatherDataTableColumns.COLUMN_DATE + " = ?, "
+                        + WeatherDataTableColumns.COLUMN_TEMPERATURE_CELSIUS + " = ?, "
+                        + WeatherDataTableColumns.COLUMN_HUMIDITY_PERCENT + " = ?, "
+                        + WeatherDataTableColumns.COLUMN_PRECIPITATION_MM + " = ?, "
+                        + WeatherDataTableColumns.COLUMN_WIND_SPEED_KMH + " = ?, "
+                        + WeatherDataTableColumns.COLUMN_WEATHER_CONDITION + " = ?, "
+                        + WeatherDataTableColumns.COLUMN_FORECAST + " = ?, "
+                        + WeatherDataTableColumns.COLUMN_UPDATED + " = ? "
+                        + "WHERE " + WeatherDataTableColumns.COLUMN_RECORD_ID + " = ?";
 
-            stmt.setInt(1, weatherData.getRecordId());
-            stmt.setString(2, weatherData.getCity());
-            stmt.setString(3, weatherData.getCountry());
-            stmt.setDouble(4, weatherData.getLatitude());
-            stmt.setDouble(5, weatherData.getLongitude());
-            stmt.setDate(6, (Date) weatherData.getDate());
-            stmt.setInt(7, weatherData.getTemperatureCelsius());
-            stmt.setInt(8, weatherData.getHumidityPercent());
-            stmt.setDouble(9, weatherData.getPrecipitationMm());
-            stmt.setInt(10, weatherData.getWindSpeedKmh());
-            stmt.setString(11, weatherData.getWeatherCondition());
-            stmt.setString(12, weatherData.getForecast());
-            stmt.setDate(13, (Date) weatherData.getUpdated());
-
-            filasAfectadas = stmt.executeUpdate();
+                try ( PreparedStatement updateStmt = cnt.prepareStatement(updateSQL)) {
+                    updateStmt.setString(1, weatherData.getCity());
+                    updateStmt.setString(2, weatherData.getCountry());
+                    updateStmt.setDouble(3, weatherData.getLatitude());
+                    updateStmt.setDouble(4, weatherData.getLongitude());
+                    updateStmt.setDate(5, weatherData.getDate() != null ? new java.sql.Date(weatherData.getDate().getTime()) : null);
+                    updateStmt.setDouble(6, weatherData.getTemperatureCelsius());
+                    updateStmt.setInt(7, weatherData.getHumidityPercent());
+                    updateStmt.setDouble(8, weatherData.getPrecipitationMm());
+                    updateStmt.setInt(9, weatherData.getWindSpeedKmh());
+                    updateStmt.setString(10, weatherData.getWeatherCondition());
+                    updateStmt.setString(11, weatherData.getForecast());
+                    updateStmt.setDate(12, weatherData.getUpdated() != null ? new java.sql.Date(weatherData.getUpdated().getTime()) : null);
+                    updateStmt.setInt(13, weatherData.getRecordId());
+                    filasAfectadas = updateStmt.executeUpdate();
+                }
+            } else {
+                // Si no existe, inserta el nuevo registro
+                try ( PreparedStatement stmt = cnt.prepareStatement(sentenciaSQL)) {
+                    stmt.setInt(1, weatherData.getRecordId());
+                    stmt.setString(2, weatherData.getCity());
+                    stmt.setString(3, weatherData.getCountry());
+                    stmt.setDouble(4, weatherData.getLatitude());
+                    stmt.setDouble(5, weatherData.getLongitude());
+                    stmt.setDate(6, weatherData.getDate() != null ? new java.sql.Date(weatherData.getDate().getTime()) : null);
+                    stmt.setDouble(7, weatherData.getTemperatureCelsius());
+                    stmt.setInt(8, weatherData.getHumidityPercent());
+                    stmt.setDouble(9, weatherData.getPrecipitationMm());
+                    stmt.setInt(10, weatherData.getWindSpeedKmh());
+                    stmt.setString(11, weatherData.getWeatherCondition());
+                    stmt.setString(12, weatherData.getForecast());
+                    stmt.setDate(13, weatherData.getUpdated() != null ? new java.sql.Date(weatherData.getUpdated().getTime()) : null);
+                    filasAfectadas = stmt.executeUpdate();
+                }
+            }
         } catch (SQLException e) {
-            throw new IllegalArgumentException("Error al insertar datos meteorológicos: " + e.getMessage(), e);
+            throw new IllegalArgumentException("Error al insertar o actualizar datos meteorológicos: " + e.getMessage(), e);
         }
 
         return filasAfectadas;
@@ -241,4 +286,5 @@ public class WeatherDataSQLDAO extends DataAccessObject {
             throw new SQLException("Error al eliminar datos meteorológicos: " + e.getMessage(), e);
         }
     }
+
 }

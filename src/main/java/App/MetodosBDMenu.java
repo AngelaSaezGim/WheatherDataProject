@@ -37,6 +37,73 @@ public class MetodosBDMenu {
         return DataAccessManagerSQL.getInstance();
     }
 
+    public static void sincronizarBDs(DataAccessManagerMongoDB managerMongoDB, DataAccessManagerSQL managerSQL) {
+        try {
+            // Inicializar AMBOS gestores (para que no de null al coger los datos)
+            if (managerMongoDB == null) {
+                managerMongoDB = DataAccessManagerMongoDB.getInstance();
+            }
+            if (managerSQL == null) {
+                managerSQL = DataAccessManagerSQL.getInstance();
+            }
+
+            // Numero de elementos que tienen cada BD
+            long mongoCount = managerMongoDB.countWeatherData();
+            int sqlCount = managerSQL.countWeatherDataSQL();
+            System.out.println("Nº Elementos Mongo :" + mongoCount);
+            System.out.println("Nº Elementos SQL :" + sqlCount);
+
+            // Comprobación cual tiene más
+            if (mongoCount == sqlCount) {
+                System.out.println("Ambas bases de datos tienen el mismo número de elementos. No es necesario sincronizar.");
+            } else {
+                // Saber cual es la que tiene más elementos
+                boolean MajorBD = sqlCount > mongoCount;
+
+                // Mostrar mensaje de advertencia y solicitar confirmación del usuario
+                System.out.println("La base de datos " + (MajorBD ? "SQL" : "MongoDB")
+                        + " tiene más elementos. ¿Deseas sincronizar los datos?");
+                System.out.print("Escribe '1' para confirmar: ");
+                int userInput = tcl.nextInt();
+
+                if (userInput == 1) {
+                    if (MajorBD) {
+                        // SQL ES MAYOR..
+                        System.out.println("Sincronizando datos de SQL a MongoDB...");
+                        //Los datos nuevos de SQL se pasaran a MongoDB
+                        //uso var
+                        var dataSQL = managerSQL.loadAllWeatherDataSQL(); // Obtener TODOS los datos de SQL
+                        managerMongoDB.replaceWeatherDataMongoDB(dataSQL); // Reemplazar en MongoDB
+
+                        System.out.println("Base de datos ahora de mongoDB;");
+                        managerMongoDB.printWeatherData();
+                    } else {
+                        // MONGODB ES MAYOR...
+                        System.out.println("Sincronizando datos de MongoDB a SQL...");
+                        var dataMongo = managerMongoDB.loadAllWeatherDataMongoDB(); // Obtener todos los datos de MongoDB
+                        //Los datos nuevos de MongoDB se pasaran a SQL
+                        managerSQL.replaceWeatherDataSQL(dataMongo); // Reemplazar en SQL
+                        System.out.println("Base de datos ahora de SQL;");
+                        verWeatherDataSQL(managerSQL);
+                    }
+                    System.out.println("Sincronización completada.");
+                    mongoCount = managerMongoDB.countWeatherData();
+                    sqlCount = managerSQL.countWeatherDataSQL();
+                    System.out.println("Nº Elementos Mongo tras sincronización: " + mongoCount);
+                    System.out.println("Nº Elementos SQL tras sincronización: " + sqlCount);
+                    MetodosMenu.esperarIntro();
+                } else {
+                    System.out.println("Has cancelado la sincronización");
+                    MetodosMenu.esperarIntro();
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error durante la sincronización: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    // SQL
     //2 - Cargar Usuarios por DNI
     //DEVUELVE OBJETO USUARIO CON ESE DNI (MOSTRAR POR DNI...)
     public static boolean searchUsersByDNISQL(DataAccessManagerSQL managerSQL) throws SQLException {
@@ -317,7 +384,7 @@ public class MetodosBDMenu {
                         filtreDeleteByCiudad(managerSQL);
                         break;
                     case 2:
-                         System.out.println("Borraremos registros de VARIAS Ciudades");
+                        System.out.println("Borraremos registros de VARIAS Ciudades");
                         solicitarWeatherDataSQL(managerSQL);
                         filtreDeleteVariasCiudades(managerSQL);
                         break;
@@ -344,7 +411,7 @@ public class MetodosBDMenu {
         int deleteTables;
         System.out.println("Dime la ciudad de la que borraremos sus registros");
         String ciudad = tcl.nextLine();
-        
+
         List<WeatherData> weatherDataPorCiudad = managerSQL.loadWeatherDataByCitySQL(ciudad);
         System.out.println("Datos que borraremos;");
         printWeatherDataSQL(weatherDataPorCiudad);
@@ -362,20 +429,20 @@ public class MetodosBDMenu {
 
         int deleteTables;
         System.out.println("Ingrese las ciudades separadas por coma (por ejemplo: Barcelona, Valencia, Madrid): ");
-        
+
         String ciudadesInput = tcl.nextLine();
         String[] ciudades = ciudadesInput.split(",");
-        
+
         for (String ciudadInput : ciudades) {
             ciudadInput = ciudadInput.trim();
             List<WeatherData> weatherDataPorCiudades = managerSQL.loadWeatherDataByCitySQL(ciudadInput);
             System.out.println("Datos que borraremos;");
             printWeatherDataSQL(weatherDataPorCiudades);
-            
+
             if (weatherDataPorCiudades != null && !weatherDataPorCiudades.isEmpty()) {
-                 deleteTables = managerSQL.deleteWeatherDataByListSQL(weatherDataPorCiudades);
-                 System.out.println("Todos los datos han sido borrados.");
-                 System.out.println("Se borraron " + deleteTables + " registros");
+                deleteTables = managerSQL.deleteWeatherDataByListSQL(weatherDataPorCiudades);
+                System.out.println("Todos los datos han sido borrados.");
+                System.out.println("Se borraron " + deleteTables + " registros");
             } else {
                 System.out.println("No se encontraron datos meteorológicos para la ciudad " + ciudadInput);
             }
@@ -418,7 +485,7 @@ public class MetodosBDMenu {
             // Verificar si el recordId ya existe
             if (managerSQL.existsWeatherData(recordIdInput)) {
                 System.out.println("Error: El identificador de registro " + recordIdInput + " ya existe. Intente con otro.");
-                continue;  // Saltar al siguiente ciclo si el ID ya existe
+                continue;
             }
 
             newWeatherData.setRecordId(Integer.parseInt(recordIdInput));
@@ -472,11 +539,12 @@ public class MetodosBDMenu {
             String forecast = tcl.nextLine();
             newWeatherData.setForecast(forecast.isBlank() ? null : forecast);
 
-            System.out.print("Ingrese la última fecha de actualización (YYYY-MM-DD): ");
-            String updatedInput = tcl.nextLine();
-            newWeatherData.setUpdated(updatedInput.isBlank() ? null : Date.valueOf(updatedInput));
+            // HE HECHO QUE SE UTILIZE LA FECHA ACTUAL COMO UPDATED (Tanto en MongoDB como en SQL)
+            Date updated = new Date(System.currentTimeMillis());
+            System.out.println("Predicción actualizada con fecha actual: " + updated);
+            newWeatherData.setUpdated(updated);
 
-            // Intentar insertar en la base de datos
+            //insertar en la base de datos
             try {
                 managerSQL.insertarWeatherDataSQL(newWeatherData);
                 System.out.println("Datos agregados con éxito:");
@@ -485,7 +553,7 @@ public class MetodosBDMenu {
                 System.out.println("Error al insertar los datos: " + e.getMessage());
                 throw e;
             }
-            // Preguntar si desea continuar agregando datos
+
             System.out.print("¿Desea agregar más datos? (sí/no): ");
             String continueInput = tcl.nextLine();
             continuar = continueInput.equalsIgnoreCase("sí");

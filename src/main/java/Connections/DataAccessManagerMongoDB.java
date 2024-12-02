@@ -15,8 +15,10 @@ import org.bson.Document;
 
 import Objects.WeatherData;
 import com.google.protobuf.TextFormat.ParseException;
+import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoIterable;
+import com.mongodb.client.model.UpdateOptions;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -127,7 +129,7 @@ public class DataAccessManagerMongoDB implements AutoCloseable {
     // ----------------------- METODOS DINAMICOS ----------------------- //
 
     private static final String COLLECTION_NAME = "WeatherDataAS01"; // Nombre de la colección
-
+        
     public long countWeatherData() {
         try {
             MongoCollection<Document> collection = database.getCollection(COLLECTION_NAME);
@@ -138,9 +140,124 @@ public class DataAccessManagerMongoDB implements AutoCloseable {
         }
     }
 
+    public List<WeatherData> loadAllWeatherDataMongoDB() throws java.text.ParseException {
+
+        List<WeatherData> weatherDataList = new ArrayList<>();
+        MongoCollection<Document> collection = database.getCollection(COLLECTION_NAME); // Nombre de la colección
+
+        // Usando find().into() para obtener todos los documentos en una lista
+        List<Document> documents = collection.find().into(new ArrayList<>());
+        // Iterar sobre los documentos obtenidos
+        for (Document doc : documents) {
+            Integer recordId = getIntegerField(doc, "record_id");
+            String city = getStringField(doc, "city");
+            String country = getStringField(doc, "country");
+            Double latitude = getDoubleField(doc, "latitude");
+            Double longitude = getDoubleField(doc, "longitude");
+
+            // Verificar si la fecha es nula o vacía
+            Date date = getDateField(doc, "date");
+
+            Double temperatureCelsius = getDoubleField(doc, "temperature_celsius");
+            Integer humidityPercent = getIntegerField(doc, "humidity_percent");
+            Double precipitationMm = getDoubleField(doc, "precipitation_mm");
+            Integer windSpeedKmh = getIntegerField(doc, "wind_speed_kmh");
+            String weatherCondition = getStringField(doc, "weather_condition");
+            String forecast = getStringField(doc, "forecast");
+
+            // Verificar si la fecha de actualización es nula o vacía
+            Date updated = getDateField(doc, "updated");
+
+            // Imprimir el documento para depuración
+            System.out.println(doc);
+
+            // Crear objeto WeatherData con los valores extraídos
+            WeatherData data = new WeatherData(
+                    recordId,
+                    city,
+                    country,
+                    latitude,
+                    longitude,
+                    date, // La fecha puede ser null sin causar NullPointerException
+                    temperatureCelsius,
+                    humidityPercent,
+                    precipitationMm,
+                    windSpeedKmh,
+                    weatherCondition,
+                    forecast,
+                    updated // La fecha de actualización también puede ser null sin causar problemas
+            );
+            weatherDataList.add(data);
+        }
+
+        // Imprimir el número de elementos cargados desde MongoDB
+        System.out.println("Número de elementos cargados desde MongoDB: " + weatherDataList.size());
+
+        return weatherDataList;
+    }
+
+    // Método para obtener un valor de tipo String de un documento, manejando nulos o vacíos
+    private String getStringField(Document doc, String fieldName) {
+        String value = doc.getString(fieldName);
+        return (value == null || value.isEmpty()) ? "Desconocido" : value; // Valor predeterminado "Desconocido"
+    }
+
+    // Método para obtener un valor de tipo Integer de un documento, manejando nulos
+    private Integer getIntegerField(Document doc, String fieldName) {
+        Object value = doc.get(fieldName);
+        if (value == null) {
+            return 0; // Valor predeterminado 0
+        }
+        if (value instanceof Integer) {
+            return (Integer) value;
+        } else if (value instanceof Double) {
+            return ((Double) value).intValue(); // Convertir Double a Integer
+        } else {
+            // Si el valor no es ni Integer ni Double, puedes lanzar un error o retornar un valor predeterminado
+            return 0; // O manejar el error según lo que necesites
+        }
+    }
+
+    // Método para obtener un valor de tipo Double de un documento, manejando nulos
+    private Double getDoubleField(Document doc, String fieldName) {
+        Object value = doc.get(fieldName);
+        if (value == null) {
+            return 0.0; // Valor predeterminado 0.0
+        }
+        if (value instanceof Double) {
+            return (Double) value;
+        } else if (value instanceof Integer) {
+            return ((Integer) value).doubleValue(); // Convertir Integer a Double
+        } else {
+            // Si el valor no es ni Double ni Integer, puedes lanzar un error o retornar un valor predeterminado
+            return 0.0; // O manejar el error según lo que necesites
+        }
+    }
+
+    public Date parseDate(Object dateObj) throws java.text.ParseException {
+        if (dateObj == null) {
+            return null;
+        }
+
+        // Parseo del objeto de fecha (asegúrate de usar un formato válido)
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        return sdf.parse(dateObj.toString());
+    }
+
+    private Date getDateField(Document doc, String fieldName) {
+        if (doc.containsKey(fieldName) && doc.get(fieldName) != null) {
+            try {
+                return parseDate(doc.get(fieldName));
+            } catch (Exception e) {
+                System.err.println("Error al parsear la fecha para el campo: " + fieldName);
+            }
+        }
+        return null;  // Devuelve null si el valor es nulo o no está presente
+    }
+
     // Método para mostrar los datos insertados
     public void printWeatherData() {
-        MongoCollection<Document> col = database.getCollection("WeatherDataAS01");
+        MongoCollection<Document> col = database.getCollection(COLLECTION_NAME);
 
         for (Document doc : col.find()) {
             doc.remove("_id");  // Eliminar el campo "_id" del documento antes de imprimir
@@ -152,7 +269,7 @@ public class DataAccessManagerMongoDB implements AutoCloseable {
 
         System.out.print("- Quieres ver los datos neteorológicos actuales de la base de datos?\n 1 - sí ");
         int respuesta = tcl.nextInt();
-        tcl.nextLine();  // Limpiar el buffer del scanner
+        tcl.nextLine();
         if (respuesta == 1) {
             printWeatherData();
         }
@@ -161,6 +278,8 @@ public class DataAccessManagerMongoDB implements AutoCloseable {
     /// --------------------------------- INSERT ------------------------- //
     public void insertWeatherDataMongoDB() throws SQLException {
         Scanner scanner = new Scanner(System.in);
+
+        solicitarWeatherDataMongoDB();
 
         boolean continuar = true;
         while (continuar) {
@@ -177,7 +296,9 @@ public class DataAccessManagerMongoDB implements AutoCloseable {
                 break;
             }
 
-            // Solicitar los datos restantes
+            // Solicitar los datos
+            //trim me permite espacios en blanco
+            //para los doubles he hecho una función a parte para validarlos
             System.out.print("Introduce el país: ");
             String country = scanner.nextLine().trim();
 
@@ -208,6 +329,9 @@ public class DataAccessManagerMongoDB implements AutoCloseable {
             System.out.print("Introduce la previsión del tiempo: ");
             String forecast = scanner.nextLine().trim();
 
+            String updated = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+            System.out.println("Predicción actualizada con fecha actual " + updated);
+
             // Crear el objeto WeatherData
             Document newWeatherData = new Document("recordId", recordId)
                     .append("city", city)
@@ -221,7 +345,8 @@ public class DataAccessManagerMongoDB implements AutoCloseable {
                     .append("wind_speed_kmh", windSpeedKmh)
                     .append("weather_condition", weatherCondition.isEmpty() ? null : weatherCondition)
                     .append("forecast", forecast.isEmpty() ? null : forecast)
-                    .append("updated", new SimpleDateFormat("yyyy-MM-dd").format(new Date()));
+                    //UPDATED SERÁ LA FECHA ACTUAL
+                    .append("updated", updated);
 
             // Insertar el documento en la base de datos
             MongoCollection<Document> collection = database.getCollection(COLLECTION_NAME);
@@ -238,9 +363,7 @@ public class DataAccessManagerMongoDB implements AutoCloseable {
         }
     }
 
-    /**
-     * Método para obtener un número decimal con validación.
-     */
+    // PARA LOS DOUBLES - Permitir que esten en BLANCO
     private double getDoubleInput(Scanner scanner) {
         while (true) {
             try {
@@ -289,6 +412,7 @@ public class DataAccessManagerMongoDB implements AutoCloseable {
     }
 
     private static void imprimirDatosDocumento(Document doc) {
+
         System.out.println("Ciudad: " + doc.getString("city"));
         System.out.println("País: " + doc.getString("country"));
         System.out.println("Latitud: " + obtenerDoubleSeguro(doc, "latitude"));
@@ -303,8 +427,8 @@ public class DataAccessManagerMongoDB implements AutoCloseable {
         System.out.println("Fecha de actualización: " + doc.getString("updated"));
         System.out.println("-------------------------------------");
     }
-    //Arreglar problemas conversión double
 
+    //Arreglar problemas conversión double*****
     private static double obtenerDoubleSeguro(Document doc, String key) {
         Object value = doc.get(key);
         if (value instanceof Double) {
@@ -329,7 +453,7 @@ public class DataAccessManagerMongoDB implements AutoCloseable {
         int opcion = scanner.nextInt();
         scanner.nextLine();  // Consumir el salto de línea
 
-        MongoCollection<Document> collection = database.getCollection("WeatherDataAS01");
+        MongoCollection<Document> collection = database.getCollection(COLLECTION_NAME);
 
         switch (opcion) {
             case 1:
@@ -416,7 +540,7 @@ public class DataAccessManagerMongoDB implements AutoCloseable {
         int opcion = tcl.nextInt();
         tcl.nextLine();
 
-        MongoCollection<Document> collection = database.getCollection("WeatherDataAS01");
+        MongoCollection<Document> collection = database.getCollection(COLLECTION_NAME);
 
         switch (opcion) {
             case 1:
@@ -508,4 +632,78 @@ public class DataAccessManagerMongoDB implements AutoCloseable {
     }
 
     // ------------------------ FIN METODO DELETE --------------------------------//
+    /*--------------------------SYNCRONIZED-------------------------------------*/
+    //
+    //Elimina todos los datos existentes en la tabla MongoDB.
+    //Inserta los nuevos datos proporcionados (POR LA OTRA BD - SQL) como una lista de objetos WeatherData.
+    public synchronized void replaceWeatherDataMongoDB(List<WeatherData> weatherDataList) {
+
+        MongoCollection<Document> collection = database.getCollection(COLLECTION_NAME);
+
+        // ELIMINA TODOS LOS DOCUMENTOS (todo lo de dentro)
+        collection.deleteMany(new Document());
+
+        // CONVIERTE Y AGREGA LOS NUEVOS DATOS DE SQL
+        //ITERANDO EN WEATHER DATA LIST
+        List<Document> documents = new ArrayList<>();
+        for (WeatherData data : weatherDataList) {
+            Document doc = new Document("recordId", data.getRecordId())
+                    .append("city", data.getCity())
+                    .append("country", data.getCountry())
+                    .append("latitude", data.getLatitude())
+                    .append("longitude", data.getLongitude())
+                    .append("date", data.getDate())
+                    .append("temperature_celsius", data.getTemperatureCelsius())
+                    .append("humidity_percent", data.getHumidityPercent())
+                    .append("precipitation_mm", data.getPrecipitationMm())
+                    .append("wind_speed_kmh", data.getWindSpeedKmh())
+                    .append("weather_condition", data.getWeatherCondition())
+                    .append("forecast", data.getForecast())
+                    .append("updated", data.getUpdated());
+            documents.add(doc);
+        }
+
+        // INSERTA LOS DOCUEMNTOS CON LAS NUEVAS ACTUALIZACIONES DE SQL EN LA COLECCIÓN
+        collection.insertMany(documents);
+    }
+    /*--------------------------SYNCRONIZED-------------------------------------*/
+
+ /*-------------------------- UPSERT -------------------------------------*/
+    
+     public void upsertWeatherRecord(WeatherData data) {
+         
+       // Obténemos colección weatherdata
+        MongoCollection<Document> collection = database.getCollection(COLLECTION_NAME);
+
+        // Crear el filtro para buscar el documento por recordId (campo único)
+        Document filter = new Document("record_id", data.getRecordId());
+
+        // Crear el documento con los datos que queremos insertar o actualizar
+        // preparando los nuevos valores para los campos. 
+        //Si el record_id ya existe, MongoDB actualizará esos campos. 
+        //Si no existe, insertará un nuevo documento con estos valores.
+        Document updateDocument = new Document()
+                .append("city", data.getCity())
+                .append("country", data.getCountry())
+                .append("latitude", data.getLatitude())
+                .append("longitude", data.getLongitude())
+                .append("date", data.getDate())
+                .append("temperature_celsius", data.getTemperatureCelsius())
+                .append("humidity_percent", data.getHumidityPercent())
+                .append("precipitation_mm", data.getPrecipitationMm())
+                .append("wind_speed_kmh", data.getWindSpeedKmh())
+                .append("weather_condition", data.getWeatherCondition())
+                .append("forecast", data.getForecast())
+                .append("updated", data.getUpdated());
+
+        // Realizar el upsert (insertar si no existe o actualizar si existe)
+        UpdateOptions options = new UpdateOptions().upsert(true);
+        //updateOne con la opción upsert = true. Si el documento con ese record_id no existe, se inserte uno nuevo
+        collection.updateOne(filter, new Document("$set", updateDocument), options);
+
+        System.out.println("Upsert completado.");
+    }
+ /*-------------------------- UPSERT -------------------------------------*/
+ /*-------------------------- SUBIR XML -------------------------------------*/
+ /*-------------------------- SUBIR XML -------------------------------------*/
 }

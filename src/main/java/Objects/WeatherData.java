@@ -17,7 +17,7 @@ public class WeatherData {
     private double latitude;
     private double longitude;
     private Date date;
-    private int temperatureCelsius;
+    private double temperatureCelsius;
     private int humidityPercent;
     private double precipitationMm;
     private int windSpeedKmh;
@@ -27,7 +27,7 @@ public class WeatherData {
     
     //Con id
     public WeatherData(int recordId, String city, String country, double latitude, double longitude, Date date,
-                       int temperatureCelsius, int humidityPercent, double precipitationMm, int windSpeedKmh,
+                       double temperatureCelsius, int humidityPercent, double precipitationMm, int windSpeedKmh,
                        String weatherCondition, String forecast, Date updated){
         
         this.recordId = recordId;
@@ -47,7 +47,7 @@ public class WeatherData {
     
     //Sin id
     public WeatherData(String city, String country, double latitude, double longitude, Date date,
-                       int temperatureCelsius, int humidityPercent, double precipitationMm, int windSpeedKmh,
+                       double temperatureCelsius, int humidityPercent, double precipitationMm, int windSpeedKmh,
                        String weatherCondition, String forecast, Date updated){
         
         this.city = city;
@@ -155,14 +155,14 @@ public class WeatherData {
     /**
      * @return the temperatureCelsius
      */
-    public int getTemperatureCelsius() {
+    public double getTemperatureCelsius() {
         return temperatureCelsius;
     }
 
     /**
      * @param temperatureCelsius the temperatureCelsius to set
      */
-    public void setTemperatureCelsius(int temperatureCelsius) {
+    public void setTemperatureCelsius(double temperatureCelsius) {
         this.temperatureCelsius = temperatureCelsius;
     }
 

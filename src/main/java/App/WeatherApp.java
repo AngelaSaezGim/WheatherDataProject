@@ -51,7 +51,7 @@ public class WeatherApp {
         MainMenuOptions opcionElegida = null;
         do {
             // Mostrar qué base de datos estamos gestionando y el número de elementos
-            mostrarEstadoBaseDeDatos();  // Aquí llamas al método que muestra el estado
+            mostrarEstadoBaseDeDatos(); 
 
             MetodosMenu.printMainMenu();
             opcionElegida = MetodosMenu.readChoice();
@@ -67,7 +67,7 @@ public class WeatherApp {
                             System.out.println("Conexion a MongoDB cerrada");
                         }
                         // Conectar a SQL usando el Singleton -No necesitas abrir una nueva conexión cada vez.
-                        managerSQL = DataAccessManagerSQL.getInstance(); // Usamos la instancia existente del Singleton
+                        managerSQL = DataAccessManagerSQL.getInstance(); // Usamos la instancia del Singleton
                         isUsingMongoDB = false;
                     } else {
                         // Cerrar la conexión actual de SQL y cambiar a MongoDB
@@ -121,34 +121,21 @@ public class WeatherApp {
                                 MetodosMenu.esperarIntro();
                                 break;
                             case QUERY_SYNCRONIZED:
-                                /*
-                                4. Opció per sincronitzar.
-                                a) [M 1p] Solament vorem aquesta opció si una de les BD te mes elements que
-                                l’altra. Sincronitzar vol dir substituir les dades d’una BD per les de l’altra.
-                                b) [0,25p] Abans de sincronitzar, haurem de sol·licitar el vist i plau de l’usuari.
-                                 */
                                 System.out.println("Sincronizar");
+                                MetodosBDMenu.sincronizarBDs(managerMongoDB, managerSQL);
                                 MetodosMenu.esperarIntro();
                                 break;
                             case QUERY_UPSERT:
-                                /*
-                                5. [M 0.50p]En cas que estem a la BD de Mongo, opció d’Upsert d’un element donat.
-                                 */
                                 if (isUsingMongoDB) {
-                                    System.out.println("Operación UPSERT");
-                                    //realizarUpsert(mongoDatabase);
+                                    System.out.println("Operación UPSERT de un elemento dado");
                                 } else {
                                     System.out.println("La operación Upsert solo está disponible en MongoDB.");
                                 }
                                 MetodosMenu.esperarIntro();
                                 break;
                             case QUERY_UPLOAD_XML_Mdb:
-                                /*
-                                6. Opció per importar ítems (import.xml)
-                                a) [0,50p] Importarem els ítems d’un XML amb format de la teua elecció.
-                                 */
                                 if (isUsingMongoDB) {
-                                    System.out.println("Subir XML");
+                                    System.out.println("Subir XML - Importar items (import.xml) \n El formato será de tu elección");
                                     //subirXMLAMongoDB(managerMongoDB);
                                 } else {
                                     System.out.println("La opción de subir XML solo está disponible para MongoDB.");
@@ -230,7 +217,7 @@ public class WeatherApp {
     }
 
     //*** SE REPRODUCIRAN SIEMPRE Y NOS DARAN EL ESTADO DE NUESTRAS BD*//
-    private static void mostrarEstadoBaseDeDatos() throws SQLException {
+    protected static void mostrarEstadoBaseDeDatos() throws SQLException {
 
         System.out.println("Actualmente estamos gestionando la base de datos: "
                 + (isUsingMongoDB ? "MongoDB" : "SQL"));

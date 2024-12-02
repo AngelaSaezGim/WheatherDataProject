@@ -30,9 +30,12 @@ public class DataAccessManagerSQL implements AutoCloseable {
      * ************************ PARTE ESTÁTICA ****************************
      */
     //Por default usamos wheater data pero podemos cambiar a userInfo
-    private static final String DEFAULT_DB_NAME = "weatherData";
     private static final String MYSQL_DB_DRIVER__CLASS_NAME = "com.mysql.cj.jdbc.Driver";
     private static final String DB_CONFIG_FILE_NAME = "src/resources/db.properties";
+
+    // Claves de las bases de datos
+    private static final String USER_INFO_DB = "UserInfo";
+    private static final String WEATHER_DATA_DB = "WeatherData";
 
     //COMO TENGO 2 BASES DE DATOS USO UN HASHMAP PARA PODER CONECTARME A AMBAS
     //ASI PODRE USARLAS CUANDO LAS NECESITE Y NO TENDRÉ QUE DUPLICAR CODIGO
@@ -45,11 +48,14 @@ public class DataAccessManagerSQL implements AutoCloseable {
 
     private static DataAccessManagerSQL singleton;
 
+    private UserInfoSQLDAO userInfoDAO;
+    private WeatherDataSQLDAO weatherDataDAO;
+
     // Instanciamos una UNICA CONEXIÓN (SINGLETON)
     private DataAccessManagerSQL() {
         loadDataBaseParams(); //para saber si es userInfo o wheaterData
-        this.userInfoDAO = new UserInfoSQLDAO(getConnection("UserInfo"));
-        this.weatherDataDAO = new WeatherDataSQLDAO(getConnection("WeatherData"));
+        this.userInfoDAO = new UserInfoSQLDAO(getConnection(USER_INFO_DB));
+        this.weatherDataDAO = new WeatherDataSQLDAO(getConnection(WEATHER_DATA_DB));
     }
 
     // Obtiene la instancia única de DataAccessManagerSQL
@@ -135,15 +141,32 @@ public class DataAccessManagerSQL implements AutoCloseable {
     //para conectar y ejecutar las SQL en la bbdd
     private Connection cnx;
 
-    private UserInfoSQLDAO userInfoDAO;
-    private WeatherDataSQLDAO weatherDataDAO;
-
-    /*--------------SELECT - TODO*------------------------*/
+    ///---------------------- USERS ------------------------------------
     public List<UserInfo> loadAllUsersSQL() throws SQLException {
 
         return this.userInfoDAO.loadAllUsers();
     }
 
+    public UserInfo loadUsersByDNISQL(String dni) throws SQLException {
+        if (dni == null || dni.length() == 0) {
+            throw new IllegalArgumentException("Debe indicar el filtro de búsqueda");
+        }
+        return this.userInfoDAO.loadUserByDni(dni);
+    }
+
+    public boolean userExistSQL(String dni) throws SQLException {
+        return this.userInfoDAO.userExist(dni);
+    }
+
+    ///---------------------- USERS ------------------------------------
+    /**
+     * *****************************************************************
+     */
+    //                        WEATHER DATA SQL                          *
+    /**
+     * *****************************************************************
+     */
+    // SELECT ALL
     public List<WeatherData> loadAllWeatherDataSQL() throws SQLException {
 
         return this.weatherDataDAO.loadAllWeatherData();
@@ -156,17 +179,6 @@ public class DataAccessManagerSQL implements AutoCloseable {
     /*----------------------------------------------------------*/
 
  /*-------------- SELECT - CONTAINING *------------------------*/
-    public UserInfo loadUsersByDNISQL(String dni) throws SQLException {
-        if (dni == null || dni.length() == 0) {
-            throw new IllegalArgumentException("Debe indicar el filtro de búsqueda");
-        }
-        return this.userInfoDAO.loadUserByDni(dni);
-    }
-
-    public boolean userExistSQL(String dni) throws SQLException {
-        return this.userInfoDAO.userExist(dni);
-    }
-
     public WeatherData loadWeatherDataByRecordIdSQL(String id) throws SQLException {
         if (id == null || id.length() == 0) {
             throw new IllegalArgumentException("Debe indicar el filtro de búsqueda");
@@ -200,7 +212,7 @@ public class DataAccessManagerSQL implements AutoCloseable {
 
     /*---------------------------------------------------------------*/
 
-    /*---------------------------------------------------------------*/
+ /*---------------------------------------------------------------*/
  /*-------------- DELETE - (WeatherData) *------------------------*/
     public int deleteAllWeatherDataSQL() throws SQLException {
         return this.weatherDataDAO.deleteAllWeatherDataSQL();
@@ -214,4 +226,43 @@ public class DataAccessManagerSQL implements AutoCloseable {
     }
 
     /*---------------------------------------------------------------*/
+ /*--------------------------SYNCRONIZED-------------------------------------*/
+    //Elimina todos los datos existentes en la tabla SQL.
+    //Inserta los nuevos datos proporcionados (POR LA OTRA BD - Mongo) como una lista de objetos WeatherData.
+    //replace
+    //Reutilizamos los metodos DELETE e INSERT DE NUESTRO DAO
+    public synchronized void replaceWeatherDataSQL(List<WeatherData> newWeatherData) throws SQLException {
+
+        if (newWeatherData == null || newWeatherData.isEmpty()) {
+            throw new IllegalArgumentException("La lista de datos meteorológicos está vacía o nula.");
+        }
+        //Como gestiono TRANSACCIÓN necesito usar la conexión directamente
+        Connection conn = getConnection("WeatherData");
+        try {
+            // Desactivar autocommit = manejar transacciones manualmente
+            conn.setAutoCommit(false);
+
+            // 1. DELETE
+            WeatherDataSQLDAO weatherDataDAO = new WeatherDataSQLDAO(conn);
+            weatherDataDAO.deleteAllWeatherDataSQL();
+
+            // 2. INSERT
+            for (WeatherData data : newWeatherData) {
+                weatherDataDAO.insertWeatherData(data); // Inserta cada objeto WeatherData
+            }
+
+            // Confirmar transacción
+            conn.commit();
+        } catch (SQLException e) {
+            // Si hay error - revertir cambios (delete es delicado)
+            if (conn != null) {
+                conn.rollback();
+            }
+            throw e;
+        } finally {
+            // Restaura autocommit que hemos quitado
+            conn.setAutoCommit(true);
+        }
+    }
 }
+/*--------------------------SYNCRONIZED-------------------------------------*/
