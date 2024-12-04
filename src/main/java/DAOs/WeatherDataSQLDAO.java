@@ -152,93 +152,64 @@ public class WeatherDataSQLDAO extends DataAccessObject {
     }
 
     //INSERT
-    public int insertWeatherData(WeatherData weatherData) {
-        int filasAfectadas = 0;
+    public int insertWeatherData(WeatherData weatherData) throws SQLException {
+     int filasAfectadas = 0;
 
-        /*
-        Verificación de duplicados: 
-        Antes de insertar un registro, se verifica si el record_id ya existe en la base de datos. 
-        Si existe, se actualiza el registro; de lo contrario, se inserta un nuevo registro.
-        */
-        //verificar keys duplicadas antes de insertar
-        String checkQuery = "SELECT COUNT(*) FROM WeatherDataAS01 WHERE record_id = ?";
-        String sentenciaSQL = "INSERT INTO WeatherDataAS01 ("
-                + WeatherDataTableColumns.COLUMN_RECORD_ID + ", "
-                + WeatherDataTableColumns.COLUMN_CITY + ", "
-                + WeatherDataTableColumns.COLUMN_COUNTRY + ", "
-                + WeatherDataTableColumns.COLUMN_LATITUDE + ", "
-                + WeatherDataTableColumns.COLUMN_LONGITUDE + ", "
-                + WeatherDataTableColumns.COLUMN_DATE + ", "
-                + WeatherDataTableColumns.COLUMN_TEMPERATURE_CELSIUS + ", "
-                + WeatherDataTableColumns.COLUMN_HUMIDITY_PERCENT + ", "
-                + WeatherDataTableColumns.COLUMN_PRECIPITATION_MM + ", "
-                + WeatherDataTableColumns.COLUMN_WIND_SPEED_KMH + ", "
-                + WeatherDataTableColumns.COLUMN_WEATHER_CONDITION + ", "
-                + WeatherDataTableColumns.COLUMN_FORECAST + ", "
-                + WeatherDataTableColumns.COLUMN_UPDATED
-                + ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-
-        try ( PreparedStatement checkStmt = cnt.prepareStatement(checkQuery)) {
-            checkStmt.setInt(1, weatherData.getRecordId());
-            ResultSet rs = checkStmt.executeQuery();
-            if (rs.next() && rs.getInt(1) > 0) {
-                // Si ya existe un registro con el mismo record_id, puedes realizar un update en vez de insert
-                String updateSQL = "UPDATE WeatherDataAS01 SET "
-                        + WeatherDataTableColumns.COLUMN_CITY + " = ?, "
-                        + WeatherDataTableColumns.COLUMN_COUNTRY + " = ?, "
-                        + WeatherDataTableColumns.COLUMN_LATITUDE + " = ?, "
-                        + WeatherDataTableColumns.COLUMN_LONGITUDE + " = ?, "
-                        + WeatherDataTableColumns.COLUMN_DATE + " = ?, "
-                        + WeatherDataTableColumns.COLUMN_TEMPERATURE_CELSIUS + " = ?, "
-                        + WeatherDataTableColumns.COLUMN_HUMIDITY_PERCENT + " = ?, "
-                        + WeatherDataTableColumns.COLUMN_PRECIPITATION_MM + " = ?, "
-                        + WeatherDataTableColumns.COLUMN_WIND_SPEED_KMH + " = ?, "
-                        + WeatherDataTableColumns.COLUMN_WEATHER_CONDITION + " = ?, "
-                        + WeatherDataTableColumns.COLUMN_FORECAST + " = ?, "
-                        + WeatherDataTableColumns.COLUMN_UPDATED + " = ? "
-                        + "WHERE " + WeatherDataTableColumns.COLUMN_RECORD_ID + " = ?";
-
-                try ( PreparedStatement updateStmt = cnt.prepareStatement(updateSQL)) {
-                    updateStmt.setString(1, weatherData.getCity());
-                    updateStmt.setString(2, weatherData.getCountry());
-                    updateStmt.setDouble(3, weatherData.getLatitude());
-                    updateStmt.setDouble(4, weatherData.getLongitude());
-                    updateStmt.setDate(5, weatherData.getDate() != null ? new java.sql.Date(weatherData.getDate().getTime()) : null);
-                    updateStmt.setDouble(6, weatherData.getTemperatureCelsius());
-                    updateStmt.setInt(7, weatherData.getHumidityPercent());
-                    updateStmt.setDouble(8, weatherData.getPrecipitationMm());
-                    updateStmt.setInt(9, weatherData.getWindSpeedKmh());
-                    updateStmt.setString(10, weatherData.getWeatherCondition());
-                    updateStmt.setString(11, weatherData.getForecast());
-                    updateStmt.setDate(12, weatherData.getUpdated() != null ? new java.sql.Date(weatherData.getUpdated().getTime()) : null);
-                    updateStmt.setInt(13, weatherData.getRecordId());
-                    filasAfectadas = updateStmt.executeUpdate();
-                }
-            } else {
-                // Si no existe, inserta el nuevo registro
-                try ( PreparedStatement stmt = cnt.prepareStatement(sentenciaSQL)) {
-                    stmt.setInt(1, weatherData.getRecordId());
-                    stmt.setString(2, weatherData.getCity());
-                    stmt.setString(3, weatherData.getCountry());
-                    stmt.setDouble(4, weatherData.getLatitude());
-                    stmt.setDouble(5, weatherData.getLongitude());
-                    stmt.setDate(6, weatherData.getDate() != null ? new java.sql.Date(weatherData.getDate().getTime()) : null);
-                    stmt.setDouble(7, weatherData.getTemperatureCelsius());
-                    stmt.setInt(8, weatherData.getHumidityPercent());
-                    stmt.setDouble(9, weatherData.getPrecipitationMm());
-                    stmt.setInt(10, weatherData.getWindSpeedKmh());
-                    stmt.setString(11, weatherData.getWeatherCondition());
-                    stmt.setString(12, weatherData.getForecast());
-                    stmt.setDate(13, weatherData.getUpdated() != null ? new java.sql.Date(weatherData.getUpdated().getTime()) : null);
-                    filasAfectadas = stmt.executeUpdate();
-                }
-            }
-        } catch (SQLException e) {
-            throw new IllegalArgumentException("Error al insertar o actualizar datos meteorológicos: " + e.getMessage(), e);
+    // Verificar si la clave primaria (record_id) ya existe
+    String checkQuery = "SELECT COUNT(*) FROM WeatherDataAS01 WHERE record_id = ?";
+    try (PreparedStatement checkStmt = cnt.prepareStatement(checkQuery)) {
+        checkStmt.setString(1, weatherData.getRecordId());
+        
+        ResultSet rs = checkStmt.executeQuery();
+        if (rs.next() && rs.getInt(1) > 0) {
+            // Si ya existe un registro con el mismo record_id, lanzamos una excepción
+            throw new SQLException("El record_id ya existe en la base de datos.");
         }
-
-        return filasAfectadas;
+    } catch (SQLException e) {
+        throw new SQLException("Error al verificar si el record_id ya existe: " + e.getMessage());
     }
+
+    // Sentencia SQL para insertar los datos meteorológicos
+    String sentenciaSQL = "INSERT INTO WeatherDataAS01 ("
+            + WeatherDataTableColumns.COLUMN_RECORD_ID + ", "
+            + WeatherDataTableColumns.COLUMN_CITY + ", "
+            + WeatherDataTableColumns.COLUMN_COUNTRY + ", "
+            + WeatherDataTableColumns.COLUMN_LATITUDE + ", "
+            + WeatherDataTableColumns.COLUMN_LONGITUDE + ", "
+            + WeatherDataTableColumns.COLUMN_DATE + ", "
+            + WeatherDataTableColumns.COLUMN_TEMPERATURE_CELSIUS + ", "
+            + WeatherDataTableColumns.COLUMN_HUMIDITY_PERCENT + ", "
+            + WeatherDataTableColumns.COLUMN_PRECIPITATION_MM + ", "
+            + WeatherDataTableColumns.COLUMN_WIND_SPEED_KMH + ", "
+            + WeatherDataTableColumns.COLUMN_WEATHER_CONDITION + ", "
+            + WeatherDataTableColumns.COLUMN_FORECAST + ", "
+            + WeatherDataTableColumns.COLUMN_UPDATED
+            + ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+    try (PreparedStatement stmt = cnt.prepareStatement(sentenciaSQL)) {
+        // Asignar los valores del objeto WeatherData a los parámetros de la sentencia
+        stmt.setString(1, weatherData.getRecordId());
+        stmt.setString(2, weatherData.getCity());
+        stmt.setString(3, weatherData.getCountry());
+        stmt.setDouble(4, weatherData.getLatitude());
+        stmt.setDouble(5, weatherData.getLongitude());
+        stmt.setString(6, weatherData.getDate());
+        stmt.setDouble(7, weatherData.getTemperatureCelsius());
+        stmt.setDouble(8, weatherData.getHumidityPercent());
+        stmt.setDouble(9, weatherData.getPrecipitationMm());
+        stmt.setDouble(10, weatherData.getWindSpeedKmh());
+        stmt.setString(11, weatherData.getWeatherCondition());
+        stmt.setString(12, weatherData.getForecast());
+        stmt.setString(13, weatherData.getUpdated());
+
+        // Ejecutar la sentencia de inserción
+        filasAfectadas = stmt.executeUpdate();
+    } catch (SQLException e) {
+        throw new SQLException("Error al insertar los datos meteorológicos: " + e.getMessage());
+    }
+
+    return filasAfectadas;
+}
 
     // Función para verificar si el ID ya existe en la base de datos
     public boolean weatherDataExist(String recordId) {

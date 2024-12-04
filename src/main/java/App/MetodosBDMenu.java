@@ -12,9 +12,11 @@ import Objects.UserInfo;
 import Objects.WeatherData;
 import java.sql.Date;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Scanner;
+import org.bson.Document;
 
 /**
  *
@@ -47,55 +49,61 @@ public class MetodosBDMenu {
                 managerSQL = DataAccessManagerSQL.getInstance();
             }
 
-            // Numero de elementos que tienen cada BD
+            // Número de elementos que tienen cada BD
             long mongoCount = managerMongoDB.countWeatherData();
             int sqlCount = managerSQL.countWeatherDataSQL();
-            System.out.println("Nº Elementos Mongo :" + mongoCount);
-            System.out.println("Nº Elementos SQL :" + sqlCount);
+            System.out.println("Nº Elementos Mongo: " + mongoCount);
+            System.out.println("Nº Elementos SQL: " + sqlCount);
 
-            // Comprobación cual tiene más
+            // Comprobación de cuál tiene más
             if (mongoCount == sqlCount) {
                 System.out.println("Ambas bases de datos tienen el mismo número de elementos. No es necesario sincronizar.");
             } else {
-                // Saber cual es la que tiene más elementos
-                boolean MajorBD = sqlCount > mongoCount;
+                String userInput = "";
 
-                // Mostrar mensaje de advertencia y solicitar confirmación del usuario
-                System.out.println("La base de datos " + (MajorBD ? "SQL" : "MongoDB")
-                        + " tiene más elementos. ¿Deseas sincronizar los datos?");
-                System.out.print("Escribe '1' para confirmar: ");
-                int userInput = tcl.nextInt();
+                do {
+                    System.out.println("¿Qué base de datos quieres actualizar? M = MongoDB / S = SQL");
+                    userInput = tcl.nextLine().toUpperCase();  // Convertimos la entrada a mayúsculas para evitar problemas con la comparación
 
-                if (userInput == 1) {
-                    if (MajorBD) {
-                        // SQL ES MAYOR..
-                        System.out.println("Sincronizando datos de SQL a MongoDB...");
-                        //Los datos nuevos de SQL se pasaran a MongoDB
-                        //uso var
+                    //CARGAMOS TODOS LOS DATOS DE LA OTRA
+                    //BORRAMOS TODO
+                    //INSERTAMOS TODOS
+                    if (userInput.equals("M")) {
+                        System.out.println("Actualizando MongoDB con los datos de SQL...");
                         var dataSQL = managerSQL.loadAllWeatherDataSQL(); // Obtener TODOS los datos de SQL
-                        managerMongoDB.replaceWeatherDataMongoDB(dataSQL); // Reemplazar en MongoDB
-
-                        System.out.println("Base de datos ahora de mongoDB;");
+                        //Dejar limpia la BD de Mongo para poder insertar
+                        long deletedMongo = managerMongoDB.deleteAllWeatherDataMongoDB();  // Eliminar datos en MongoDB
+                        System.out.println("Datos eliminados de MongoDB: " + deletedMongo);
+                        
+                        managerMongoDB.insertWeatherDataMongoDB(dataSQL);
+                        //Insertar EN MONGODB con parametro los datos que tenemos de toda la bd de SQL (dataSQL)
+                        System.out.println("Base de datos ahora de MongoDB.");
                         managerMongoDB.printWeatherData();
-                    } else {
-                        // MONGODB ES MAYOR...
-                        System.out.println("Sincronizando datos de MongoDB a SQL...");
-                        var dataMongo = managerMongoDB.loadAllWeatherDataMongoDB(); // Obtener todos los datos de MongoDB
-                        //Los datos nuevos de MongoDB se pasaran a SQL
-                        managerSQL.replaceWeatherDataSQL(dataMongo); // Reemplazar en SQL
-                        System.out.println("Base de datos ahora de SQL;");
+                    } else if (userInput.equals("S")) {
+                        System.out.println("Actualizando SQL  con los datos de MongoDB...");
+                        var dataMongo = managerMongoDB.loadAllWeatherDataMongoDB(); // Obtener TODOS los datos de MongoDB
+                        //Dejar limpia la BD de SQL para poder insertar
+                        int deletedSQL = managerSQL.deleteAllWeatherDataSQL(); // Eliminar datos en SQL
+                        System.out.println("Datos eliminados de SQL: " + deletedSQL);
+                       //Insertar en SQL con los parametros de los datos que tenemos de toda la bd de MongoDB (dataMongo)
+                       // Insertar en SQL los datos cargados desde MongoDB
+                       //insertarWeatherDataSQL(WeatherData weatherData)
+                        managerSQL.insertarWeatherDataSQL(dataMongo);  // Insertar en SQL
+                       
+                        System.out.println("Base de datos ahora de SQL.");
                         verWeatherDataSQL(managerSQL);
+                    } else {
+                        System.out.println("Entrada no válida. Por favor, elija 'M' para MongoDB o 'S' para SQL.");
                     }
-                    System.out.println("Sincronización completada.");
-                    mongoCount = managerMongoDB.countWeatherData();
-                    sqlCount = managerSQL.countWeatherDataSQL();
-                    System.out.println("Nº Elementos Mongo tras sincronización: " + mongoCount);
-                    System.out.println("Nº Elementos SQL tras sincronización: " + sqlCount);
-                    MetodosMenu.esperarIntro();
-                } else {
-                    System.out.println("Has cancelado la sincronización");
-                    MetodosMenu.esperarIntro();
-                }
+                } while (!userInput.equals("M") && !userInput.equals("S"));
+
+                System.out.println("Sincronización completada.");
+                mongoCount = managerMongoDB.countWeatherData();
+                sqlCount = managerSQL.countWeatherDataSQL();
+                System.out.println("Nº Elementos Mongo tras sincronización: " + mongoCount);
+                System.out.println("Nº Elementos SQL tras sincronización: " + sqlCount);
+
+                MetodosMenu.esperarIntro();
             }
         } catch (Exception e) {
             System.err.println("Error durante la sincronización: " + e.getMessage());
@@ -559,4 +567,82 @@ public class MetodosBDMenu {
             continuar = continueInput.equalsIgnoreCase("sí");
         }
     }
+    
+   /////////////////INSERTAR EN MONGODB//////////////////////////////
+    
+    public static List<WeatherData> insertMongoDBObject(){
+         Scanner scanner = new Scanner(System.in);
+
+        solicitarWeatherDataMongoDB();
+
+        boolean continuar = true;
+        while (continuar) {
+
+            System.out.print("Introduce el record id: ");
+            String recordId = scanner.nextLine().trim();
+
+            // Solicitar el nombre de la ciudad
+            System.out.print("Introduce el nombre de la ciudad (0 para salir): ");
+            String city = scanner.nextLine().trim();
+
+            // Salir del bucle si la ciudad es "0"
+            if (city.equals("0")) {
+                break;
+            }
+
+            // Solicitar los datos
+            //trim me permite espacios en blanco
+            //para los doubles he hecho una función a parte para validarlos
+            System.out.print("Introduce el país: ");
+            String country = scanner.nextLine().trim();
+
+            System.out.print("Introduce la latitud: ");
+            double latitude = getDoubleInput(scanner);
+
+            System.out.print("Introduce la longitud: ");
+            double longitude = getDoubleInput(scanner);
+
+            System.out.print("Introduce la fecha (yyyy-MM-dd): ");
+            String date = scanner.nextLine().trim();
+
+            System.out.print("Introduce la temperatura en grados Celsius: ");
+            double temperatureCelsius = getDoubleInput(scanner);
+
+            System.out.print("Introduce la humedad en porcentaje: ");
+            double humidityPercent = getDoubleInput(scanner);
+
+            System.out.print("Introduce la precipitación en mm: ");
+            double precipitationMm = getDoubleInput(scanner);
+
+            System.out.print("Introduce la velocidad del viento en km/h: ");
+            double windSpeedKmh = getDoubleInput(scanner);
+
+            System.out.print("Introduce la condición del tiempo: ");
+            String weatherCondition = scanner.nextLine().trim();
+
+            System.out.print("Introduce la previsión del tiempo: ");
+            String forecast = scanner.nextLine().trim();
+
+            String updated = new SimpleDateFormat("yyyy-MM-dd").format(new java.util.Date());
+            System.out.println("Predicción actualizada con fecha actual " + updated);
+
+            // Crear el objeto WeatherData
+            Document newWeatherData = new Document("recordId", recordId)
+                    .append("city", city)
+                    .append("country", country.isEmpty() ? null : country)
+                    .append("latitude", latitude)
+                    .append("longitude", longitude)
+                    .append("date", date.isEmpty() ? null : date)
+                    .append("temperature_celsius", temperatureCelsius)
+                    .append("humidity_percent", humidityPercent)
+                    .append("precipitation_mm", precipitationMm)
+                    .append("wind_speed_kmh", windSpeedKmh)
+                    .append("weather_condition", weatherCondition.isEmpty() ? null : weatherCondition)
+                    .append("forecast", forecast.isEmpty() ? null : forecast)
+                    //UPDATED SERÁ LA FECHA ACTUAL
+                    .append("updated", updated);
+    }
+}
+
+
 }

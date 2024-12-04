@@ -15,10 +15,13 @@ import org.bson.Document;
 
 import Objects.WeatherData;
 import com.google.protobuf.TextFormat.ParseException;
+import com.mongodb.MongoException;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoIterable;
 import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.result.DeleteResult;
+import java.io.File;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -26,6 +29,9 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
+import org.w3c.dom.*;
+import javax.xml.parsers.*;
+import org.bson.Document;
 
 /**
  *
@@ -129,7 +135,7 @@ public class DataAccessManagerMongoDB implements AutoCloseable {
     // ----------------------- METODOS DINAMICOS ----------------------- //
 
     private static final String COLLECTION_NAME = "WeatherDataAS01"; // Nombre de la colección
-        
+
     public long countWeatherData() {
         try {
             MongoCollection<Document> collection = database.getCollection(COLLECTION_NAME);
@@ -138,6 +144,14 @@ public class DataAccessManagerMongoDB implements AutoCloseable {
             System.err.println("Error al contar los documentos en la colección: " + e.getMessage());
             return 0;
         }
+    }
+
+    // Método para verificar si un documento con el recordId ya existe
+    private boolean recordExists(String recordId) {
+        MongoCollection<Document> collection = database.getCollection(COLLECTION_NAME);
+        Document filter = new Document("recordId", recordId); // filtro -> recordID
+        FindIterable<Document> result = collection.find(filter);
+        return result.iterator().hasNext(); // Si encuentra algo = es true; recordId existe
     }
 
     public List<WeatherData> loadAllWeatherDataMongoDB() throws java.text.ParseException {
@@ -265,9 +279,9 @@ public class DataAccessManagerMongoDB implements AutoCloseable {
         }
     }
 
-    public void solicitarWeatherDataMongoDB() throws SQLException {
+    public void solicitarWeatherDataMongoDB() {
 
-        System.out.print("- Quieres ver los datos neteorológicos actuales de la base de datos?\n 1 - sí ");
+        System.out.print("- Quieres ver los datos neteorológicos actuales de la base de datos?\n 1 = si ");
         int respuesta = tcl.nextInt();
         tcl.nextLine();
         if (respuesta == 1) {
@@ -276,77 +290,7 @@ public class DataAccessManagerMongoDB implements AutoCloseable {
     }
 
     /// --------------------------------- INSERT ------------------------- //
-    public void insertWeatherDataMongoDB() throws SQLException {
-        Scanner scanner = new Scanner(System.in);
-
-        solicitarWeatherDataMongoDB();
-
-        boolean continuar = true;
-        while (continuar) {
-
-            System.out.print("Introduce el record id: ");
-            String recordId = scanner.nextLine().trim();
-
-            // Solicitar el nombre de la ciudad
-            System.out.print("Introduce el nombre de la ciudad (0 para salir): ");
-            String city = scanner.nextLine().trim();
-
-            // Salir del bucle si la ciudad es "0"
-            if (city.equals("0")) {
-                break;
-            }
-
-            // Solicitar los datos
-            //trim me permite espacios en blanco
-            //para los doubles he hecho una función a parte para validarlos
-            System.out.print("Introduce el país: ");
-            String country = scanner.nextLine().trim();
-
-            System.out.print("Introduce la latitud: ");
-            double latitude = getDoubleInput(scanner);
-
-            System.out.print("Introduce la longitud: ");
-            double longitude = getDoubleInput(scanner);
-
-            System.out.print("Introduce la fecha (yyyy-MM-dd): ");
-            String date = scanner.nextLine().trim();
-
-            System.out.print("Introduce la temperatura en grados Celsius: ");
-            double temperatureCelsius = getDoubleInput(scanner);
-
-            System.out.print("Introduce la humedad en porcentaje: ");
-            double humidityPercent = getDoubleInput(scanner);
-
-            System.out.print("Introduce la precipitación en mm: ");
-            double precipitationMm = getDoubleInput(scanner);
-
-            System.out.print("Introduce la velocidad del viento en km/h: ");
-            double windSpeedKmh = getDoubleInput(scanner);
-
-            System.out.print("Introduce la condición del tiempo: ");
-            String weatherCondition = scanner.nextLine().trim();
-
-            System.out.print("Introduce la previsión del tiempo: ");
-            String forecast = scanner.nextLine().trim();
-
-            String updated = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
-            System.out.println("Predicción actualizada con fecha actual " + updated);
-
-            // Crear el objeto WeatherData
-            Document newWeatherData = new Document("recordId", recordId)
-                    .append("city", city)
-                    .append("country", country.isEmpty() ? null : country)
-                    .append("latitude", latitude)
-                    .append("longitude", longitude)
-                    .append("date", date.isEmpty() ? null : date)
-                    .append("temperature_celsius", temperatureCelsius)
-                    .append("humidity_percent", humidityPercent)
-                    .append("precipitation_mm", precipitationMm)
-                    .append("wind_speed_kmh", windSpeedKmh)
-                    .append("weather_condition", weatherCondition.isEmpty() ? null : weatherCondition)
-                    .append("forecast", forecast.isEmpty() ? null : forecast)
-                    //UPDATED SERÁ LA FECHA ACTUAL
-                    .append("updated", updated);
+    public void insertWeatherDataMongoDB(WeatherData weatherData) throws SQLException {
 
             // Insertar el documento en la base de datos
             MongoCollection<Document> collection = database.getCollection(COLLECTION_NAME);
@@ -530,6 +474,18 @@ public class DataAccessManagerMongoDB implements AutoCloseable {
 
     //-------------------------- FIN LISTAR ---------------------------------//
     //-------------------------- METODO DELETE  ---------------------------------//
+    public long deleteAllWeatherDataMongoDB() {
+        MongoCollection<Document> collection = database.getCollection(COLLECTION_NAME);
+        try {
+            // Eliminar todos los documentos de la colección
+            DeleteResult result = collection.deleteMany(new Document());
+            return result.getDeletedCount();  // Retorna el número de documentos eliminados
+        } catch (MongoException e) {
+            System.err.println("Error al eliminar datos de MongoDB: " + e.getMessage());
+            return 0;  // En caso de error, retorna 0
+        }
+    }
+    
     public void deleteWeatherData() throws SQLException {
 
         System.out.println("Seleccione una opción para borrar datos:");
@@ -632,78 +588,190 @@ public class DataAccessManagerMongoDB implements AutoCloseable {
     }
 
     // ------------------------ FIN METODO DELETE --------------------------------//
-    /*--------------------------SYNCRONIZED-------------------------------------*/
-    //
-    //Elimina todos los datos existentes en la tabla MongoDB.
-    //Inserta los nuevos datos proporcionados (POR LA OTRA BD - SQL) como una lista de objetos WeatherData.
-    public synchronized void replaceWeatherDataMongoDB(List<WeatherData> weatherDataList) {
 
+ /*-------------------------- UPSERT -------------------------------------*/
+    public void upsertWeatherRecord() {
+
+        Scanner scanner = new Scanner(System.in);
+
+        solicitarWeatherDataMongoDB();
+
+        boolean continuar = true;
+        while (continuar) {
+
+            System.out.print("Introduce el record id: ");
+            String recordId = scanner.nextLine().trim();
+
+            // Verificar si el recordId ya existe
+            if (recordExists(recordId)) {
+                System.out.println("El record con id " + recordId + " ya existe. Se procederá a actualizar.");
+            } else {
+                System.out.println("El record con id " + recordId + " no existe. Se procederá a insertar.");
+            }
+
+            // Solicitar el nombre de la ciudad
+            System.out.print("Introduce el nombre de la ciudad: (0 para salir):");
+            String city = scanner.nextLine().trim();
+
+             // Salir del bucle si la ciudad es "0"
+            if (city.equals("0")) {
+                break;
+            }
+            
+            // Solicitar los datos
+            //trim me permite espacios en blanco
+            //para los doubles he hecho una función a parte para validarlos
+            System.out.print("Introduce el país: ");
+            String country = scanner.nextLine().trim();
+
+            System.out.print("Introduce la latitud: ");
+            double latitude = getDoubleInput(scanner);
+
+            System.out.print("Introduce la longitud: ");
+            double longitude = getDoubleInput(scanner);
+
+            System.out.print("Introduce la fecha (yyyy-MM-dd): ");
+            String date = scanner.nextLine().trim();
+
+            System.out.print("Introduce la temperatura en grados Celsius: ");
+            double temperatureCelsius = getDoubleInput(scanner);
+
+            System.out.print("Introduce la humedad en porcentaje: ");
+            double humidityPercent = getDoubleInput(scanner);
+
+            System.out.print("Introduce la precipitación en mm: ");
+            double precipitationMm = getDoubleInput(scanner);
+
+            System.out.print("Introduce la velocidad del viento en km/h: ");
+            double windSpeedKmh = getDoubleInput(scanner);
+
+            System.out.print("Introduce la condición del tiempo: ");
+            String weatherCondition = scanner.nextLine().trim();
+
+            System.out.print("Introduce la previsión del tiempo: ");
+            String forecast = scanner.nextLine().trim();
+
+            String updated = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+            System.out.println("Predicción actualizada con fecha actual " + updated);
+
+            // Crear el objeto WeatherData para INSERTAR O ACTUALIZAR
+            Document data = new Document("recordId", recordId)
+                    .append("city", city)
+                    .append("country", country.isEmpty() ? null : country)
+                    .append("latitude", latitude)
+                    .append("longitude", longitude)
+                    .append("date", date.isEmpty() ? null : date)
+                    .append("temperature_celsius", temperatureCelsius)
+                    .append("humidity_percent", humidityPercent)
+                    .append("precipitation_mm", precipitationMm)
+                    .append("wind_speed_kmh", windSpeedKmh)
+                    .append("weather_condition", weatherCondition.isEmpty() ? null : weatherCondition)
+                    .append("forecast", forecast.isEmpty() ? null : forecast)
+                    //UPDATED SERÁ LA FECHA ACTUAL
+                    .append("updated", updated);
+
+            // Obténemos colección weatherdata
+            MongoCollection<Document> collection = database.getCollection(COLLECTION_NAME);
+
+            // Crear FILTRO para buscar documento por id (y actualizar si existe)
+            Document filter = new Document("record_id", recordId);
+
+            // Crear el documento con los datos que queremos insertar o actualizar
+            // preparando los nuevos valores para los campos. 
+            //Si el record_id ya existe, MongoDB actualizará esos campos. 
+            //Si no existe, insertará un nuevo documento con estos valores.
+            Document updateDocument = new Document()
+                    .append("city", city)
+                    .append("country", country.isEmpty() ? null : country)
+                    .append("latitude", latitude)
+                    .append("longitude", longitude)
+                    .append("date", date.isEmpty() ? null : date)
+                    .append("temperature_celsius", temperatureCelsius)
+                    .append("humidity_percent", humidityPercent)
+                    .append("precipitation_mm", precipitationMm)
+                    .append("wind_speed_kmh", windSpeedKmh)
+                    .append("weather_condition", weatherCondition.isEmpty() ? null : weatherCondition)
+                    .append("forecast", forecast.isEmpty() ? null : forecast)
+                    .append("updated", updated);
+
+            // Realizar el upsert (insertar si no existe o actualizar si existe)
+            UpdateOptions options = new UpdateOptions().upsert(true);
+            //updateOne con la opción upsert = true. 
+            //Si el documento con ese record_id no existe, se inserte uno nuevo
+            collection.updateOne(filter, new Document("$set", updateDocument), options);
+
+            System.out.println("Upsert completado.");
+            solicitarWeatherDataMongoDB();
+            
+            // Preguntar si desea continuar agregando datos
+            System.out.print("¿Deseas seguir realizando más upserts? (si/no): ");
+            scanner.nextLine();
+            String continueInput = tcl.nextLine();
+            continuar = continueInput.equalsIgnoreCase("si");
+        }
+    }
+    
+  /*-------------------------- UPSERT -------------------------------------*/
+ /*-------------------------- SUBIR XML -------------------------------------*/
+    
+    
+    public void subirXMLAMongoDB() {
+    try {
+        // Crear el objeto para la base de datos de MongoDB
         MongoCollection<Document> collection = database.getCollection(COLLECTION_NAME);
 
-        // ELIMINA TODOS LOS DOCUMENTOS (todo lo de dentro)
-        collection.deleteMany(new Document());
+        // Solicitar el archivo XML (asumiendo que el archivo se pasa como argumento)
+        System.out.print("Introduce la ruta del archivo XML: ");
+        String filePath = tcl.nextLine().trim();
 
-        // CONVIERTE Y AGREGA LOS NUEVOS DATOS DE SQL
-        //ITERANDO EN WEATHER DATA LIST
-        List<Document> documents = new ArrayList<>();
-        for (WeatherData data : weatherDataList) {
-            Document doc = new Document("recordId", data.getRecordId())
-                    .append("city", data.getCity())
-                    .append("country", data.getCountry())
-                    .append("latitude", data.getLatitude())
-                    .append("longitude", data.getLongitude())
-                    .append("date", data.getDate())
-                    .append("temperature_celsius", data.getTemperatureCelsius())
-                    .append("humidity_percent", data.getHumidityPercent())
-                    .append("precipitation_mm", data.getPrecipitationMm())
-                    .append("wind_speed_kmh", data.getWindSpeedKmh())
-                    .append("weather_condition", data.getWeatherCondition())
-                    .append("forecast", data.getForecast())
-                    .append("updated", data.getUpdated());
-            documents.add(doc);
+        // Abrir el archivo XML
+        File xmlFile = new File(filePath);
+        if (!xmlFile.exists()) {
+            System.out.println("El archivo no existe.");
+            return;
         }
 
-        // INSERTA LOS DOCUEMNTOS CON LAS NUEVAS ACTUALIZACIONES DE SQL EN LA COLECCIÓN
-        collection.insertMany(documents);
+        // Crear un objeto para leer el XML
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder builder = factory.newDocumentBuilder();
+        org.w3c.dom.Document document = builder.parse(xmlFile);
+        document.getDocumentElement().normalize();
+
+        // Obtener todos los elementos que deseas importar, por ejemplo, "item"
+        NodeList nodeList = document.getElementsByTagName("item");
+
+        // Iterar sobre cada nodo 'item' del archivo XML
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+
+            if (node.getNodeType() == Node.ELEMENT_NODE) {
+                Element element = (Element) node;
+
+                // CREA DOCUMENTO MONGO A PARTIR DE CADA "ITEM"
+                Document mongoDoc = new Document();
+
+                mongoDoc.append("record_id", element.getElementsByTagName("recordId").item(0).getTextContent());
+                mongoDoc.append("city", element.getElementsByTagName("city").item(0).getTextContent());
+                mongoDoc.append("country", element.getElementsByTagName("country").item(0).getTextContent());
+                mongoDoc.append("latitude", Double.parseDouble(element.getElementsByTagName("latitude").item(0).getTextContent()));
+                mongoDoc.append("longitude", Double.parseDouble(element.getElementsByTagName("longitude").item(0).getTextContent()));
+                mongoDoc.append("date", element.getElementsByTagName("date").item(0).getTextContent());
+                mongoDoc.append("temperature_celsius", Double.parseDouble(element.getElementsByTagName("temperature_celsius").item(0).getTextContent()));
+                mongoDoc.append("humidity_percent", Double.parseDouble(element.getElementsByTagName("humidity_percent").item(0).getTextContent()));
+                mongoDoc.append("precipitation_mm", Double.parseDouble(element.getElementsByTagName("precipitation_mm").item(0).getTextContent()));
+                mongoDoc.append("wind_speed_kmh", Double.parseDouble(element.getElementsByTagName("wind_speed_kmh").item(0).getTextContent()));
+                mongoDoc.append("weather_condition", element.getElementsByTagName("weather_condition").item(0).getTextContent());
+                mongoDoc.append("forecast", element.getElementsByTagName("forecast").item(0).getTextContent());
+
+                // INSERTA DOCUMENTO EN LA COLECCIÓN
+                collection.insertOne(mongoDoc);
+                System.out.println("Elemento insertado: " + mongoDoc.toJson());
+            }
+        }
+        System.out.println("Carga XML completada exitosamente.");
+    } catch (Exception e) {
+        System.out.println("Error al procesar el archivo XML: " + e.getMessage());
     }
-    /*--------------------------SYNCRONIZED-------------------------------------*/
-
- /*-------------------------- UPSERT -------------------------------------*/
-    
-     public void upsertWeatherRecord(WeatherData data) {
-         
-       // Obténemos colección weatherdata
-        MongoCollection<Document> collection = database.getCollection(COLLECTION_NAME);
-
-        // Crear el filtro para buscar el documento por recordId (campo único)
-        Document filter = new Document("record_id", data.getRecordId());
-
-        // Crear el documento con los datos que queremos insertar o actualizar
-        // preparando los nuevos valores para los campos. 
-        //Si el record_id ya existe, MongoDB actualizará esos campos. 
-        //Si no existe, insertará un nuevo documento con estos valores.
-        Document updateDocument = new Document()
-                .append("city", data.getCity())
-                .append("country", data.getCountry())
-                .append("latitude", data.getLatitude())
-                .append("longitude", data.getLongitude())
-                .append("date", data.getDate())
-                .append("temperature_celsius", data.getTemperatureCelsius())
-                .append("humidity_percent", data.getHumidityPercent())
-                .append("precipitation_mm", data.getPrecipitationMm())
-                .append("wind_speed_kmh", data.getWindSpeedKmh())
-                .append("weather_condition", data.getWeatherCondition())
-                .append("forecast", data.getForecast())
-                .append("updated", data.getUpdated());
-
-        // Realizar el upsert (insertar si no existe o actualizar si existe)
-        UpdateOptions options = new UpdateOptions().upsert(true);
-        //updateOne con la opción upsert = true. Si el documento con ese record_id no existe, se inserte uno nuevo
-        collection.updateOne(filter, new Document("$set", updateDocument), options);
-
-        System.out.println("Upsert completado.");
-    }
- /*-------------------------- UPSERT -------------------------------------*/
- /*-------------------------- SUBIR XML -------------------------------------*/
+}
  /*-------------------------- SUBIR XML -------------------------------------*/
 }

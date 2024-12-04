@@ -42,8 +42,14 @@ public class WeatherApp {
         //Desactivamos logs de MongoDB
         Utilities.disableMongoLogging();
 
+        //PRIMERO SINCRONIZO TODO
+        System.out.println("Sincronizando.....");
+        MetodosBDMenu.sincronizarBDs(managerMongoDB, managerSQL);
+        MetodosMenu.esperarIntro();
+        
+        
         //Luego la implementaré
-        //userWelcome();
+        userWelcome();
         //Elegimos la primera base de datos a la que nos conectamos (mongoDB o SQL)
         //variable isUsingMongoDB (es MUY importante en el menú)
         chooseDatabase();
@@ -128,6 +134,7 @@ public class WeatherApp {
                             case QUERY_UPSERT:
                                 if (isUsingMongoDB) {
                                     System.out.println("Operación UPSERT de un elemento dado");
+                                    managerMongoDB.upsertWeatherRecord();
                                 } else {
                                     System.out.println("La operación Upsert solo está disponible en MongoDB.");
                                 }
@@ -136,7 +143,7 @@ public class WeatherApp {
                             case QUERY_UPLOAD_XML_Mdb:
                                 if (isUsingMongoDB) {
                                     System.out.println("Subir XML - Importar items (import.xml) \n El formato será de tu elección");
-                                    //subirXMLAMongoDB(managerMongoDB);
+                                    managerMongoDB.subirXMLAMongoDB();
                                 } else {
                                     System.out.println("La opción de subir XML solo está disponible para MongoDB.");
                                 }
