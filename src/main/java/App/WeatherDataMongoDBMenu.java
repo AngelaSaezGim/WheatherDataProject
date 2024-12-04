@@ -9,8 +9,10 @@ import Objects.WeatherData;
 import java.sql.SQLException;
 import java.util.List;
 import static App.GeneralMethodsMenu.tcl;
+import com.mongodb.MongoException;
 import com.mongodb.client.result.UpdateResult;
 import java.sql.Date;
+import java.util.Scanner;
 
 /**
  *
@@ -18,6 +20,7 @@ import java.sql.Date;
  */
 public class WeatherDataMongoDBMenu {
 
+    //METODOS ESTATICOS QUE PUEDO USAR EN MIS MENUS
     /**
      * *************************** FUNCIONES LANZADAS - DATA ACCESS MANAGER
      * ****************************
@@ -25,12 +28,12 @@ public class WeatherDataMongoDBMenu {
     //***************************** WEATHER DATA OPERATIONS *****************************/
     //***** SELECT *//////
     //2 - Ver Los Datos Meteorológicos //
-    public static void viewWeatherDataMongoDB(DataAccessManagerMongoDB managerMongoDB) throws SQLException {
+    public static void viewWeatherDataMongoDB(DataAccessManagerMongoDB managerMongoDB) {
         List<WeatherData> allWeatherDatas = managerMongoDB.loadAllWeatherDataMongo();
         WeatherDataSQLMenu.displayWeatherData(allWeatherDatas);
     }
 
-    public static void requestWeatherDataMongo(DataAccessManagerMongoDB managerMongoDB) throws SQLException {
+    public static void requestWeatherDataMongo(DataAccessManagerMongoDB managerMongoDB) {
 
         System.out.print("- Quieres ver los datos neteorológicos actuales de la base de datos?\n 1 - sí ");
         int input = tcl.nextInt();
@@ -209,7 +212,7 @@ public class WeatherDataMongoDBMenu {
     //**************************** DELETE  *******************************//////
 
     //************************** INSERTAR ************************************/
-    public static void insertarWeatherDataMongo(DataAccessManagerMongoDB managerMongoDB) throws SQLException {
+    public static void insertWeatherDataMongo(DataAccessManagerMongoDB managerMongoDB) throws SQLException {
 
         System.out.println("Inserción de datos meteorológicos. Escriba '0' como ciudad para terminar.");
         boolean continueInsertion = true;
@@ -312,98 +315,85 @@ public class WeatherDataMongoDBMenu {
 
     //************************** INSERTAR ************************************/
     //* UPSERT *////
-    public void upsertWeatherDataMongo(DataAccessManagerMongoDB managerMongoDB) throws SQLException {
+    public static void upsertWeatherDataMongo(DataAccessManagerMongoDB managerMongoDB) {
 
-        System.out.println("Realizando Upsert de datos meteorológicos. Escriba '0' como ciudad para terminar.");
-        boolean continueUpsert = true;
-        requestWeatherDataMongo(managerMongoDB);
-
-        while (continueUpsert) {
-            // Crear un nuevo objeto WeatherData
+        try {
             WeatherData newWeatherData = new WeatherData();
 
-            // Solicitar recordId
-            System.out.print("Ingrese el identificador del registro: ");
-            String recordIdInput = tcl.nextLine();
-            if (recordIdInput.isBlank()) {
-                System.out.println("El identificador es obligatorio. Intente nuevamente.");
-                continue;
-            }
+            // Solicitar al usuario los datos necesarios
+            System.out.print("Introduce el ID del registro: ");
+            int recordId = tcl.nextInt();
+            tcl.nextLine(); // Consumir el salto de línea pendiente
+            newWeatherData.setRecordId(recordId);
 
-            try {
-                // Intentar convertir el recordIdInput a un int
-                int recordId = Integer.parseInt(recordIdInput);
-                newWeatherData.setRecordId(recordId);  // Suponiendo que recordId en WeatherData es de tipo int
-            } catch (NumberFormatException e) {
-                System.out.println("Error: El identificador debe ser un número entero. Intente nuevamente.");
-                continue;
-            }
+            System.out.print("Ingrese la ciudad: ");
+            String city = tcl.nextLine();
+            newWeatherData.setCity(city.isBlank() ? null : city);
 
-            // Solicitar otros datos meteorológicos
-            newWeatherData.setCity(getValidInput("Ingrese la ciudad: "));
-            newWeatherData.setCountry(getValidInput("Ingrese el país: "));
-            newWeatherData.setLatitude(getValidDoubleInput("Ingrese la latitud: "));
-            newWeatherData.setLongitude(getValidDoubleInput("Ingrese la longitud: "));
-            newWeatherData.setDate(getValidDateInput("Ingrese la fecha (YYYY-MM-DD): "));
-            newWeatherData.setTemperatureCelsius(getValidIntInput("Ingrese la temperatura (°C): "));
-            newWeatherData.setHumidityPercent(getValidIntInput("Ingrese el porcentaje de humedad: "));
-            newWeatherData.setPrecipitationMm(getValidDoubleInput("Ingrese la precipitación (mm): "));
-            newWeatherData.setWindSpeedKmh(getValidIntInput("Ingrese la velocidad del viento (km/h): "));
-            newWeatherData.setWeatherCondition(getValidInput("Ingrese la condición del clima: "));
-            newWeatherData.setForecast(getValidInput("Ingrese el pronóstico: "));
+            System.out.print("Ingrese el país: ");
+            String country = tcl.nextLine();
+            newWeatherData.setCountry(country.isBlank() ? null : country);
 
-            // Establecer la fecha de actualización
+            System.out.print("Ingrese la latitud: ");
+            String latitudeInput = tcl.nextLine();
+            newWeatherData.setLatitude(latitudeInput.isBlank() ? 0.0 : Double.parseDouble(latitudeInput));
+
+            System.out.print("Ingrese la longitud: ");
+            String longitudeInput = tcl.nextLine();
+            newWeatherData.setLongitude(longitudeInput.isBlank() ? 0.0 : Double.parseDouble(longitudeInput));
+
+            System.out.print("Ingrese la fecha (YYYY-MM-DD): ");
+            String dateInput = tcl.nextLine();
+            newWeatherData.setDate(dateInput.isBlank() ? null : Date.valueOf(dateInput));
+
+            System.out.print("Ingrese la temperatura (°C): ");
+            String tempInput = tcl.nextLine();
+            newWeatherData.setTemperatureCelsius(tempInput.isBlank() ? 0 : Integer.parseInt(tempInput));
+
+            System.out.print("Ingrese el porcentaje de humedad: ");
+            String humidityInput = tcl.nextLine();
+            newWeatherData.setHumidityPercent(humidityInput.isBlank() ? 0 : Integer.parseInt(humidityInput));
+
+            System.out.print("Ingrese la precipitación (mm): ");
+            String precipitationInput = tcl.nextLine();
+            newWeatherData.setPrecipitationMm(precipitationInput.isBlank() ? 0.0 : Double.parseDouble(precipitationInput));
+
+            System.out.print("Ingrese la velocidad del viento (km/h): ");
+            String windSpeedInput = tcl.nextLine();
+            newWeatherData.setWindSpeedKmh(windSpeedInput.isBlank() ? 0 : Integer.parseInt(windSpeedInput));
+
+            System.out.print("Ingrese la condición del clima: ");
+            String weatherCondition = tcl.nextLine();
+            newWeatherData.setWeatherCondition(weatherCondition.isBlank() ? null : weatherCondition);
+
+            System.out.print("Ingrese el pronóstico: ");
+            String forecast = tcl.nextLine();
+            newWeatherData.setForecast(forecast.isBlank() ? null : forecast);
+
+            // Usar la fecha actual como la última actualización
             Date updated = new Date(System.currentTimeMillis());
+            System.out.println("Predicción actualizada con fecha actual: " + updated);
             newWeatherData.setUpdated(updated);
 
-            // Realizar el upsert en la base de datos
-            try {
-                // Realiza el upsert y captura el resultado
-                UpdateResult result = managerMongoDB.upsertWeatherDataMongo(newWeatherData);
+            // Llamar al método upsert del DAO
+            UpdateResult result = managerMongoDB.upsertWeatherDataMongo(newWeatherData);
 
-                if (result.getModifiedCount() > 0) {
-                    System.out.println("Registro actualizado exitosamente:");
-                } else if (result.getUpsertedId() != null) {
-                    System.out.println("Nuevo registro insertado con ID: " + result.getUpsertedId());
+            if (result != null) {
+                if (result.getUpsertedId() != null) {
+                    System.out.println("Nuevo documento insertado con ID: " + result.getUpsertedId());
+                } else if (result.getModifiedCount() > 0) {
+                    System.out.println("Documento actualizado.");
                 } else {
                     System.out.println("No se realizaron cambios.");
                 }
-                System.out.println(newWeatherData);
-            } catch (SQLException e) {
-                System.out.println("Error al realizar el upsert de los datos: " + e.getMessage());
-                throw e;
+            } else {
+                System.out.println("Error durante la operación.");
             }
 
-            System.out.print("¿Desea agregar más datos? (si/no): ");
-            String continueInput = tcl.nextLine();
-            continueUpsert = continueInput.equalsIgnoreCase("si");
+        } catch (Exception e) {
+            System.err.println("Error al capturar los datos: " + e.getMessage());
+        } finally {
+            tcl.close();
         }
     }
-
-// Métodos auxiliares para mejorar la legibilidad y validación
-    private String getValidInput(String prompt) {
-        System.out.print(prompt);
-        String input = tcl.nextLine();
-        return input.isBlank() ? null : input;
-    }
-
-    private Double getValidDoubleInput(String prompt) {
-        System.out.print(prompt);
-        String input = tcl.nextLine();
-        return input.isBlank() ? 0.0 : Double.parseDouble(input);
-    }
-
-    private Integer getValidIntInput(String prompt) {
-        System.out.print(prompt);
-        String input = tcl.nextLine();
-        return input.isBlank() ? 0 : Integer.parseInt(input);
-    }
-
-    private Date getValidDateInput(String prompt) {
-        System.out.print(prompt);
-        String input = tcl.nextLine();
-        return input.isBlank() ? null : Date.valueOf(input);
-    }
-
-    //************************** INSERTAR ************************************/
 }

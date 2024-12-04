@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<data>
+    <item>
+        <recordId>1</recordId>
+        <city>New York</city>
+        <country>USA</country>
+        <latitude>40.7128</latitude>
+        <longitude>-74.0060</longitude>
+        <date>2024-12-04</date>
+        <temperature_celsius>5.5</temperature_celsius>
+        <humidity_percent>70.0</humidity_percent>
+        <precipitation_mm>10.2</precipitation_mm>
+        <wind_speed_kmh>15.3</wind_speed_kmh>
+        <weather_condition>Cloudy</weather_condition>
+        <forecast>Rain</forecast>
+    </item>
+    <item>
+        <recordId>2</recordId>
+        <city>Los Angeles</city>
+        <country>USA</country>
+        <latitude>34.0522</latitude>
+        <longitude>-118.2437</longitude>
+        <date>2024-12-04</date>
+        <temperature_celsius>20.0</temperature_celsius>
+        <humidity_percent>60.0</humidity_percent>
+        <precipitation_mm>0.0</precipitation_mm>
+        <wind_speed_kmh>10.0</wind_speed_kmh>
+        <weather_condition>Sunny</weather_condition>
+        <forecast>Clear</forecast>
+    </item>
+</data>

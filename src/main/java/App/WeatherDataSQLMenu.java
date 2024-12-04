@@ -275,7 +275,7 @@ public class WeatherDataSQLMenu {
     }
 
     //************************** INSERTAR ************************************/
-    public static void insertarWeatherDataSQL(DataAccessManagerSQL managerSQL) throws SQLException {
+    public static void insertWeatherDataSQL(DataAccessManagerSQL managerSQL) throws SQLException {
 
         System.out.println("Inserción de datos meteorológicos. Escriba '0' como ciudad para terminar.");
         boolean continueInsertion = true;

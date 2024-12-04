@@ -35,7 +35,7 @@ public class GeneralMethodsMenu {
     }
 
     //SINCRONIZAR AMBAS BASES DE DATOS
-    public static void sincronizarBDs(DataAccessManagerMongoDB managerMongoDB, DataAccessManagerSQL managerSQL) {
+    public static void syncronizeBDs(DataAccessManagerMongoDB managerMongoDB, DataAccessManagerSQL managerSQL) {
         try {
             // Inicializar AMBOS gestores (para que no de null al coger los datos)
             if (managerMongoDB == null) {
@@ -136,7 +136,7 @@ public class GeneralMethodsMenu {
                 System.out.println("Nº Elementos Mongo tras sincronización: " + mongoCount);
                 System.out.println("Nº Elementos SQL tras sincronización: " + sqlCount);
 
-                GeneralMethodsMenu.esperarIntro();
+                GeneralMethodsMenu.waitIntro();
             }
         } catch (Exception e) {
             System.err.println("Error durante la sincronización: " + e.getMessage());
@@ -184,7 +184,7 @@ public class GeneralMethodsMenu {
     }
 
     //REQUESTS Y UTILIDADES
-    public static void esperarIntro() {
+    public static void waitIntro() {
         System.out.println("Presione Enter para continuar...");
         tcl.nextLine();
     }

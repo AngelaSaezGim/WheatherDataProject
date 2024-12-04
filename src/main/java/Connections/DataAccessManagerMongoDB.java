@@ -151,13 +151,13 @@ public class DataAccessManagerMongoDB implements AutoCloseable {
         return this.weatherDataDAO.weatherDataExistMongo(recordId);
     }
     
-    public List<WeatherData> loadAllWeatherDataMongo() throws SQLException {
+    public List<WeatherData> loadAllWeatherDataMongo() {
         return this.weatherDataDAO.loadAllWeatherDataMongo();
     }
       /*----------------------------------------------------------*/
     /*-------------------------- FILTER *------------------------*/
 
-        public List<WeatherData> loadWeatherDataByCityMongo(String city) throws SQLException {
+        public List<WeatherData> loadWeatherDataByCityMongo(String city) {
         if (city == null || city.length() == 0) {
             throw new IllegalArgumentException("Debe indicar el filtro de búsqueda");
         }
@@ -190,7 +190,7 @@ public class DataAccessManagerMongoDB implements AutoCloseable {
         return this.weatherDataDAO.deleteAllWeatherDataMongo();
     }
 
-    public int deleteWeatherDataByListMongo(List<WeatherData> weatherDataList) throws SQLException {
+    public int deleteWeatherDataByListMongo(List<WeatherData> weatherDataList) {
         if (weatherDataList == null || weatherDataList.isEmpty()) {
             throw new IllegalArgumentException("Debe indicar el filtro de búsqueda");
         }
@@ -200,22 +200,22 @@ public class DataAccessManagerMongoDB implements AutoCloseable {
     /*---------------------------------------------------------------*/
 
  /*-------------------------- UPSERT -------------------------------------*/
-    public UpdateResult upsertWeatherDataMongo(WeatherData weatherData) throws SQLException {
+    public UpdateResult upsertWeatherDataMongo(WeatherData weatherData) {
         return this.weatherDataDAO.upsertWeatherDataMongo(weatherData);
 }
-    
   /*-------------------------- UPSERT -------------------------------------*/
  /*-------------------------- SUBIR XML -------------------------------------*/
     
     
-    public void subirXMLAMongoDB() {
+    
+    public void uploadXMLMongoDB() {
     try {
         // Crear el objeto para la base de datos de MongoDB
         MongoCollection<Document> collection = database.getCollection(COLLECTION_NAME);
 
+        String filePath = "C:\\Users\\angel\\OneDrive\\Escritorio\\ProyectoADA\\src\\resources\\data.xml";
         // Solicitar el archivo XML (asumiendo que el archivo se pasa como argumento)
         System.out.print("Introduce la ruta del archivo XML: ");
-        String filePath = tcl.nextLine().trim();
 
         // Abrir el archivo XML
         File xmlFile = new File(filePath);
@@ -225,10 +225,13 @@ public class DataAccessManagerMongoDB implements AutoCloseable {
         }
 
         // Crear un objeto para leer el XML
+        //PROCESAMIENTO XML
+        // Usa el API javax.xml.parsers para leer y procesar el archivo XML.
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         DocumentBuilder builder = factory.newDocumentBuilder();
         org.w3c.dom.Document document = builder.parse(xmlFile);
         document.getDocumentElement().normalize();
+        //PROCESAMIENTO XML
 
         // Obtener todos los elementos que deseas importar, por ejemplo, "item"
         NodeList nodeList = document.getElementsByTagName("item");
