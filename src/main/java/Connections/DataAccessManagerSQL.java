@@ -139,7 +139,6 @@ public class DataAccessManagerSQL implements AutoCloseable {
 
     /* FUNCIONES CON DATOS */
     //para conectar y ejecutar las SQL en la bbdd
-    private Connection cnx;
 
     ///---------------------- USERS ------------------------------------
     public List<UserInfo> loadAllUsersSQL() throws SQLException {
@@ -165,52 +164,51 @@ public class DataAccessManagerSQL implements AutoCloseable {
     //                        WEATHER DATA SQL                          *
     /**
      * *****************************************************************
+     * @return 
      */
     // SELECT ALL
-    public List<WeatherData> loadAllWeatherDataSQL() throws SQLException {
-
-        return this.weatherDataDAO.loadAllWeatherData();
-    }
-
     public int countWeatherDataSQL() throws SQLException {
-        return this.weatherDataDAO.countWeatherData();
+        return this.weatherDataDAO.countWeatherDataSQL();
+    }
+    
+    public boolean existsWeatherDataSQL(String recordId) {
+        return this.weatherDataDAO.weatherDataExistSQL(recordId);
+    }
+      
+    public List<WeatherData> loadAllWeatherDataSQL() throws SQLException {
+        return this.weatherDataDAO.loadAllWeatherDataSQL();
     }
 
-    /*----------------------------------------------------------*/
+  /*----------------------------------------------------------*/
 
  /*-------------- SELECT - CONTAINING *------------------------*/
-    public WeatherData loadWeatherDataByRecordIdSQL(String id) throws SQLException {
-        if (id == null || id.length() == 0) {
-            throw new IllegalArgumentException("Debe indicar el filtro de búsqueda");
-        }
-        return this.weatherDataDAO.loadWeatherDataByRecordId(id);
-    }
-
+                                                      //city
     public List<WeatherData> loadWeatherDataByCitySQL(String city) throws SQLException {
         if (city == null || city.length() == 0) {
             throw new IllegalArgumentException("Debe indicar el filtro de búsqueda");
         }
-        return this.weatherDataDAO.loadWeatherDataByCity(city);
+        return this.weatherDataDAO.loadWeatherDataByCitySQL(city);
     }
-
-    public List<WeatherData> loadWeatherDataByCitiesSQL(List<String> ciudades) throws SQLException {
-        if (ciudades == null || ciudades.isEmpty()) {
+                                                        //list citiesList
+    public List<WeatherData> loadWeatherDataByCitiesSQL(List<String> citiesList) throws SQLException {
+        if (citiesList == null || citiesList.isEmpty()) {
             throw new IllegalArgumentException("Debe indicar el filtro de búsqueda");
         }
-        return this.weatherDataDAO.loadWeatherDataByCities(ciudades);
+        return this.weatherDataDAO.loadWeatherDataByCitiesSQL(citiesList);
     }
 
-    /*------------------------------------------------------------*/
+ /*------------------------------------------------------------*/
  /*-------------- INSERT - (WeatherData) *------------------------*/
+    
     public int insertarWeatherDataSQL(WeatherData newweatherdata) throws SQLException {
-        return this.weatherDataDAO.insertWeatherData(newweatherdata);
+        return this.weatherDataDAO.insertWeatherDataSQL(newweatherdata);
+    }
+    
+    public int insertarWeatherDataSQL(List<WeatherData> weatherDataList) throws SQLException {
+        return this.weatherDataDAO.insertWeatherDataSQL(weatherDataList);
     }
 
-    public boolean existsWeatherData(String recordId) {
-        return this.weatherDataDAO.weatherDataExist(recordId);
-    }
-
-    /*---------------------------------------------------------------*/
+/*---------------------------------------------------------------*/
 
  /*---------------------------------------------------------------*/
  /*-------------- DELETE - (WeatherData) *------------------------*/
@@ -224,45 +222,6 @@ public class DataAccessManagerSQL implements AutoCloseable {
         }
         return this.weatherDataDAO.deleteWeatherDataByListSQL(weatherDataList);
     }
+}
 
     /*---------------------------------------------------------------*/
- /*--------------------------SYNCRONIZED-------------------------------------*/
-    //Elimina todos los datos existentes en la tabla SQL.
-    //Inserta los nuevos datos proporcionados (POR LA OTRA BD - Mongo) como una lista de objetos WeatherData.
-    //replace
-    //Reutilizamos los metodos DELETE e INSERT DE NUESTRO DAO
-    public synchronized void replaceWeatherDataSQL(List<WeatherData> newWeatherData) throws SQLException {
-
-        if (newWeatherData == null || newWeatherData.isEmpty()) {
-            throw new IllegalArgumentException("La lista de datos meteorológicos está vacía o nula.");
-        }
-        //Como gestiono TRANSACCIÓN necesito usar la conexión directamente
-        Connection conn = getConnection("WeatherData");
-        try {
-            // Desactivar autocommit = manejar transacciones manualmente
-            conn.setAutoCommit(false);
-
-            // 1. DELETE
-            WeatherDataSQLDAO weatherDataDAO = new WeatherDataSQLDAO(conn);
-            weatherDataDAO.deleteAllWeatherDataSQL();
-
-            // 2. INSERT
-            for (WeatherData data : newWeatherData) {
-                weatherDataDAO.insertWeatherData(data); // Inserta cada objeto WeatherData
-            }
-
-            // Confirmar transacción
-            conn.commit();
-        } catch (SQLException e) {
-            // Si hay error - revertir cambios (delete es delicado)
-            if (conn != null) {
-                conn.rollback();
-            }
-            throw e;
-        } finally {
-            // Restaura autocommit que hemos quitado
-            conn.setAutoCommit(true);
-        }
-    }
-}
-/*--------------------------SYNCRONIZED-------------------------------------*/

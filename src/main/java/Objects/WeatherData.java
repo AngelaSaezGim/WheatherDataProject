@@ -254,6 +254,7 @@ public class WeatherData {
     public String toString() {
         return "Información Meteorológica de " + city + " {" +
                 "recordId=" + recordId +
+                ", city = " + city +
                 ", country='" + country + '\'' +
                 ", latitude=" + latitude +
                 ", longitude=" + longitude +

@@ -8,14 +8,19 @@ package App;
  *
  * @author angsaegim
  */
+import static App.GeneralMethodsMenu.requestDNI;
 import java.util.Scanner;
 
 //SQL Connection
 import Connections.DataAccessManagerSQL;
 //MongoDb Connection
 import Connections.DataAccessManagerMongoDB;
+import Objects.UserInfo;
+import Objects.WeatherData;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.List;
+import java.util.OptionalDouble;
 
 public class WeatherApp {
 
@@ -44,11 +49,9 @@ public class WeatherApp {
 
         //PRIMERO SINCRONIZO TODO
         System.out.println("Sincronizando.....");
-        MetodosBDMenu.sincronizarBDs(managerMongoDB, managerSQL);
-        MetodosMenu.esperarIntro();
-        
-        
-        //Luego la implementaré
+        //GeneralMethodsMenu.sincronizarBDs(managerMongoDB, managerSQL);
+        GeneralMethodsMenu.esperarIntro();
+
         userWelcome();
         //Elegimos la primera base de datos a la que nos conectamos (mongoDB o SQL)
         //variable isUsingMongoDB (es MUY importante en el menú)
@@ -57,10 +60,10 @@ public class WeatherApp {
         MainMenuOptions opcionElegida = null;
         do {
             // Mostrar qué base de datos estamos gestionando y el número de elementos
-            mostrarEstadoBaseDeDatos(); 
+            mostrarEstadoBaseDeDatos();
 
-            MetodosMenu.printMainMenu();
-            opcionElegida = MetodosMenu.readChoice();
+            GeneralMethodsMenu.printMainMenu();
+            opcionElegida = GeneralMethodsMenu.readChoice();
 
             switch (opcionElegida) {
                 case QUERY_CHANGEBD:
@@ -85,60 +88,60 @@ public class WeatherApp {
                         managerMongoDB = DataAccessManagerMongoDB.getInstance(); // Usamos la instancia existente del Singleton
                         isUsingMongoDB = true;
                     }
-                    MetodosMenu.esperarIntro();
+                    GeneralMethodsMenu.esperarIntro();
                     break;
                 case QUERY_MANAGERBD:
                     ManagerMenuOption opcionElegida2 = null;
                     do {
                         // Mostrar qué base de datos estamos gestionando y el número de elementos
                         mostrarEstadoBaseDeDatos();  // método que muestra el estado
-                        MetodosMenu.printManagerMenu();
-                        opcionElegida2 = MetodosMenu.readChoice2();
+                        GeneralMethodsMenu.printManagerMenu();
+                        opcionElegida2 = GeneralMethodsMenu.readChoice2();
                         switch (opcionElegida2) {
                             case QUERY_INSERT:
                                 if (isUsingMongoDB) {
                                     System.out.println("Insertar en MongoDB");
-                                    managerMongoDB.insertWeatherDataMongoDB();
+                                    WeatherDataMongoDBMenu.insertarWeatherDataMongo(managerMongoDB);
                                 } else {
                                     System.out.println("Insertar en SQL");
-                                    MetodosBDMenu.insertarWeatherDataSQL(managerSQL);
+                                    WeatherDataSQLMenu.insertarWeatherDataSQL(managerSQL);
                                 }
                                 break;
                             case QUERY_DELETE:
                                 if (isUsingMongoDB) {
                                     System.out.println("Borrar en MongoDB");
-                                    managerMongoDB.deleteWeatherData();
+                                    WeatherDataMongoDBMenu.deleteWeatherDataMenuMongo(managerMongoDB);
                                     //
                                 } else {
                                     System.out.println("Borrar en SQL");
-                                    MetodosBDMenu.deleteWeatherData(managerSQL);
+                                    WeatherDataSQLMenu.deleteWeatherDataMenuSQL(managerSQL);
                                 }
-                                MetodosMenu.esperarIntro();
+                                GeneralMethodsMenu.esperarIntro();
                                 break;
                             case QUERY_LIST:
                                 System.out.println("Listar Datos");
                                 if (isUsingMongoDB) {
                                     System.out.println("Listar en MongoDB");
-                                    managerMongoDB.listarWeatherDataMongoDB();
+                                    WeatherDataMongoDBMenu.listWeatherDataMongoDB(managerMongoDB);
                                 } else {
                                     System.out.println("Listar en SQL");
-                                    MetodosBDMenu.listarWeatherDataSQL(managerSQL);
+                                    WeatherDataSQLMenu.listWeatherDataSQL(managerSQL);
                                 }
-                                MetodosMenu.esperarIntro();
+                                GeneralMethodsMenu.esperarIntro();
                                 break;
                             case QUERY_SYNCRONIZED:
                                 System.out.println("Sincronizar");
-                                MetodosBDMenu.sincronizarBDs(managerMongoDB, managerSQL);
-                                MetodosMenu.esperarIntro();
+                                GeneralMethodsMenu.sincronizarBDs(managerMongoDB, managerSQL);
+                                GeneralMethodsMenu.esperarIntro();
                                 break;
                             case QUERY_UPSERT:
                                 if (isUsingMongoDB) {
                                     System.out.println("Operación UPSERT de un elemento dado");
-                                    managerMongoDB.upsertWeatherRecord();
+                                    //managerMongoDB.upsertWeatherRecord();
                                 } else {
                                     System.out.println("La operación Upsert solo está disponible en MongoDB.");
                                 }
-                                MetodosMenu.esperarIntro();
+                                GeneralMethodsMenu.esperarIntro();
                                 break;
                             case QUERY_UPLOAD_XML_Mdb:
                                 if (isUsingMongoDB) {
@@ -147,7 +150,7 @@ public class WeatherApp {
                                 } else {
                                     System.out.println("La opción de subir XML solo está disponible para MongoDB.");
                                 }
-                                MetodosMenu.esperarIntro();
+                                GeneralMethodsMenu.esperarIntro();
                                 break;
                             case EXIT_MANAGER:
                                 System.out.println("Saliendo del gestor...");
@@ -163,34 +166,6 @@ public class WeatherApp {
         } while (opcionElegida != MainMenuOptions.EXIT);
 
         System.out.println("Salimos del programa, adios!!");
-    }
-
-    public static void userWelcome() {
-
-        //INSTANCIA CONEXIÓN SQL (uso singleton) - SOLO LA ABRIMOS Y CERRAMOS PARA YSER INFO
-        try ( DataAccessManagerSQL managerSQL = DataAccessManagerSQL.getInstance()) {
-            // Conexión a WeatherData (por defecto SQL)
-            System.out.println("Conexión a WeatherData con SQL  exitosa.");
-
-            ////-----------------------USERINFO -------------------------------------
-            // Conexión a UserInfo (Solo la usamos aqui)
-            try ( Connection userInfoConnection = managerSQL.getConnection("UserInfo")) {
-                System.out.println("Conexión a UserInfo exitosa.");
-                MetodosBDMenu.solicitarUsersSQL(managerSQL);
-                MetodosBDMenu.validarUsuarioSQL(managerSQL); //Te valida e imprime el mensaje de Binvenida
-            } catch (Exception e) {
-                System.err.println("Error en UserInfo: " + e.getMessage());
-            } finally {
-                System.out.println("Cerrada la conexión a UserInfo SQL");
-            }
-        } catch (Exception e) {
-            System.err.println("Error en WeatherData: " + e.getMessage());
-            ////-----------------------USERINFO -------------------------------------
-        } finally {
-            //no se cierra explicitamente ya que usamos autocloseable pero lo  marcamos.
-            System.out.println("Cerrada la conexión con weaterData SQL para usuarios");
-            MetodosMenu.esperarIntro();
-        }
     }
 
     private static void chooseDatabase() {
@@ -229,11 +204,115 @@ public class WeatherApp {
         System.out.println("Actualmente estamos gestionando la base de datos: "
                 + (isUsingMongoDB ? "MongoDB" : "SQL"));
         if (isUsingMongoDB) {
-            long count = managerMongoDB.countWeatherData();
+            long count = managerMongoDB.countWeatherDataMongo();
             System.out.println("Número de elementos en la colección MongoDB: " + count);
         } else {
             int count = managerSQL.countWeatherDataSQL();
             System.out.println("Número de elementos en la tabla SQL: " + count);
         }
     }
+
+    //------------------------------ USUARIOS --------------------------------//
+    public static void userWelcome() {
+
+        //INSTANCIA CONEXIÓN SQL (uso singleton) - SOLO LA ABRIMOS Y CERRAMOS PARA YSER INFO
+        try ( DataAccessManagerSQL managerSQL = DataAccessManagerSQL.getInstance()) {
+            System.out.println("Conexión a WeatherDataSQL exitosa");
+            ////-----------------------USERINFO -------------------------------------
+            // Conexión a UserInfo (Solo la usamos aqui)
+            try ( Connection userInfoConnection = managerSQL.getConnection("UserInfo")) {
+                System.out.println("Conexión a UserInfo exitosa.");
+                solicitarUsersSQL(managerSQL);
+                searchUsersByDNISQL(managerSQL); //Te valida e imprime el mensaje de Binvenida
+            } catch (Exception e) {
+                System.err.println("Error en UserInfo: " + e.getMessage());
+            } finally {
+                System.out.println("Cerrada la conexión a UserInfo SQL");
+            }
+        } catch (Exception e) {
+            System.err.println("Error en WeatherData: " + e.getMessage());
+            ////-----------------------USERINFO -------------------------------------
+        } finally {
+            //no se cierra explicitamente ya que usamos autocloseable pero lo  marcamos.
+            System.out.println("Cerrada la conexión con weaterData SQL para usuarios");
+            GeneralMethodsMenu.esperarIntro();
+        }
+    }
+
+    public static void verUserInfoSQL(DataAccessManagerSQL managerSQL) throws SQLException {
+        List<UserInfo> allUsers = managerSQL.loadAllUsersSQL();
+        printUserInfoSQL(allUsers);
+    }
+
+    //Complementario a verUserInfoSQL
+    public static void printUserInfoSQL(List<UserInfo> users) {
+        for (UserInfo user : users) {
+            System.out.println("\t" + user);
+        }
+        System.out.println();
+    }
+
+    public static void solicitarUsersSQL(DataAccessManagerSQL managerSQL) throws SQLException {
+
+        System.out.print("- Quieres ver los usuarios actuales de la base de datos?\n 1 - sí ");
+        int respuesta = tcl.nextInt();
+        tcl.nextLine();  // Limpiar el buffer del scanner
+        if (respuesta == 1) {
+            verUserInfoSQL(managerSQL);
+        }
+    }
+    //2 - Cargar Usuarios por DNI
+    //DEVUELVE OBJETO USUARIO CON ESE DNI (MOSTRAR POR DNI...)
+
+    public static boolean searchUsersByDNISQL(DataAccessManagerSQL managerSQL) throws SQLException {
+        String dniUser;
+        boolean continueSearch = true;  // Variable para controlar el bucle
+
+        while (continueSearch) {
+            dniUser = requestDNI();  // Solicitar el DNI
+
+            UserInfo userFilteredByCode = managerSQL.loadUsersByDNISQL(dniUser);
+
+            if (userFilteredByCode != null) {
+                welcomeMessageTemperatureSQL(userFilteredByCode, managerSQL);
+                return true;  // Salir del método si se encuentra un usuario
+            } else {
+                // Si no se encuentra el usuario, mostrar mensaje y continuar buscando
+                System.out.println("No se encontró usuario con el DNI especificado. ");
+                continueSearch = true;  // Continuar pidiendo el DNI
+            }
+        }
+
+        return false;  // Si se ha salido del bucle (esto solo ocurriría si el DNI es válido)
+    }
+
+    // Método para mostrar la temperatura de la ciudad 
+    // ULTIMA TEMPERATURA REGISTRADA
+    public static void welcomeMessageTemperatureSQL(UserInfo userFilteredByCode, DataAccessManagerSQL managerSQL) throws SQLException {
+        if (userFilteredByCode != null) {
+            String userName = userFilteredByCode.getName();
+            String userCity = userFilteredByCode.getCity();
+
+            //Com que en la BD proporcionada PODRIA donar-se el cas de tindre diversos registres per la mateixa ciutat
+            // Obtener los datos meteorológicos de la ciudad, QUE PUEDEN SER VARIOS
+            List<WeatherData> weatherDataList = managerSQL.loadWeatherDataByCitySQL(userCity);
+
+            if (weatherDataList != null && !weatherDataList.isEmpty()) {
+                OptionalDouble optionalAverage = weatherDataList.stream()
+                        .mapToDouble(WeatherData::getTemperatureCelsius) // Extrae temperaturas como double
+                        .average(); // Calcula promedio
+
+                if (optionalAverage.isPresent()) {
+                    double averageTemperature = optionalAverage.getAsDouble();
+                    System.out.println("Benvingut " + userName + ", a la teua ciutat " + userCity
+                            + " la temperatura mitjana registrada és de " + averageTemperature + " graus centígrads.");
+                } else {
+                    System.out.println("No se pudo obtener la última temperatura registrada para " + userCity);
+                }
+            } else {
+                System.out.println("No se pudo obtener la temperatura para " + userCity);
+            }
+        }
+    }
+
 }
