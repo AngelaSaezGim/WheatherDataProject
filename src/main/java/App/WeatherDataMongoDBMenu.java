@@ -323,7 +323,7 @@ public class WeatherDataMongoDBMenu {
             // Solicitar al usuario los datos necesarios
             System.out.print("Introduce el ID del registro: ");
             int recordId = tcl.nextInt();
-            tcl.nextLine(); // Consumir el salto de línea pendiente
+            tcl.nextLine();
             newWeatherData.setRecordId(recordId);
 
             System.out.print("Ingrese la ciudad: ");
@@ -342,10 +342,16 @@ public class WeatherDataMongoDBMenu {
             String longitudeInput = tcl.nextLine();
             newWeatherData.setLongitude(longitudeInput.isBlank() ? 0.0 : Double.parseDouble(longitudeInput));
 
-            System.out.print("Ingrese la fecha (YYYY-MM-DD): ");
-            String dateInput = tcl.nextLine();
-            newWeatherData.setDate(dateInput.isBlank() ? null : Date.valueOf(dateInput));
+            tcl.nextLine();
 
+            System.out.print("Ingrese la fecha (YYYY-MM-DD): ");
+            try {
+                String dateInput = tcl.nextLine();
+                newWeatherData.setDate(dateInput.isBlank() ? null : Date.valueOf(dateInput));
+            } catch (IllegalArgumentException e) {
+                System.err.println("Error: Fecha inválida. Se requiere el formato YYYY-MM-DD.");
+                newWeatherData.setDate(null);
+            }
             System.out.print("Ingrese la temperatura (°C): ");
             String tempInput = tcl.nextLine();
             newWeatherData.setTemperatureCelsius(tempInput.isBlank() ? 0 : Integer.parseInt(tempInput));
@@ -374,6 +380,7 @@ public class WeatherDataMongoDBMenu {
             Date updated = new Date(System.currentTimeMillis());
             System.out.println("Predicción actualizada con fecha actual: " + updated);
             newWeatherData.setUpdated(updated);
+            tcl.nextLine();
 
             // Llamar al método upsert del DAO
             UpdateResult result = managerMongoDB.upsertWeatherDataMongo(newWeatherData);

@@ -189,11 +189,6 @@ public class GeneralMethodsMenu {
         tcl.nextLine();
     }
 
-    private static String requestContentLike() {
-        System.out.print("Escriba el codigo a buscar; ");
-        return readNotEmptyString();
-    }
-
     // Función para solicitar el DNI al usuario
     public static String requestDNI() {
         System.out.print("Por favor, ingrese su DNI: ");

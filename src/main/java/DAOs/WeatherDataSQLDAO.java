@@ -244,14 +244,14 @@ public class WeatherDataSQLDAO extends DataAccessObject {
                 stmt.setString(3, weatherData.getCountry());
                 stmt.setDouble(4, weatherData.getLatitude());
                 stmt.setDouble(5, weatherData.getLongitude());
-                stmt.setDate(6, (Date) weatherData.getDate());
+                stmt.setDate(6, new java.sql.Date(weatherData.getDate().getTime()));
                 stmt.setDouble(7, weatherData.getTemperatureCelsius());
                 stmt.setDouble(8, weatherData.getHumidityPercent());
                 stmt.setDouble(9, weatherData.getPrecipitationMm());
                 stmt.setDouble(10, weatherData.getWindSpeedKmh());
                 stmt.setString(11, weatherData.getWeatherCondition());
                 stmt.setString(12, weatherData.getForecast());
-                stmt.setDate(13, (Date) weatherData.getUpdated());
+                stmt.setDate(13, new java.sql.Date(weatherData.getUpdated().getTime()));
 
                 // Añadir la sentencia a batch
                 stmt.addBatch();

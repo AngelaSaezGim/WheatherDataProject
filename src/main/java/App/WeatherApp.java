@@ -138,10 +138,10 @@ public class WeatherApp {
                                 if (isUsingMongoDB) {
                                     System.out.println("Operación UPSERT de un elemento dado");
                                      WeatherDataMongoDBMenu.upsertWeatherDataMongo(managerMongoDB);
+                                     tcl.next();
                                 } else {
                                     System.out.println("La operación Upsert solo está disponible en MongoDB.");
                                 }
-                                GeneralMethodsMenu.waitIntro();
                                 break;
                             case QUERY_UPLOAD_XML_Mdb:
                                 if (isUsingMongoDB) {
